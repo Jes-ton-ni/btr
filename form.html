@@ -1959,7 +1959,7 @@
               [method](prNo);
           }
           if (type === 'AOQ') {
-            safeWriteSheet('writeToAOQSheet', 'AOQ');
+            safeWriteSheet('writeToAOQSheetWithExistingData', 'AOQ');
           } else if (type === 'PO') {
             safeWriteSheet('writeToPOSheet', 'PO');
           } else if (type === 'RFQ') {
@@ -2802,7 +2802,7 @@
               google.script.run
                 .withSuccessHandler(function(m) { doReSearch(); })
                 .withFailureHandler(function(e) { console.error("AOQ write failed:", e.message); doReSearch(); })
-                .writeToAOQSheet(prNo);
+                .writeToAOQSheetWithExistingData(prNo);
             } else if (type === 'RFQ') {
               google.script.run
                 .withSuccessHandler(function(m) { doReSearch(); })
@@ -3097,8 +3097,8 @@
     tbody.innerHTML = '';
 
     supplierRFQItems.forEach(function(item, idx) {
-      var qty      = Number(item.quantity) || 0;
-      var budgUnit = Number(item.unitCost)  || 0;
+      var qty      = parseNum(item.quantity);
+      var budgUnit = parseNum(item.unitCost);
       var budgTot  = budgUnit * qty;
 
       var tr = document.createElement('tr');
@@ -3135,7 +3135,7 @@
 
     // ── Table foot ──
     var budgGrand = supplierRFQItems.reduce(function(sum, item) {
-      return sum + (Number(item.unitCost) || 0) * (Number(item.quantity) || 0);
+      return sum + parseNum(item.unitCost) * parseNum(item.quantity);
     }, 0);
 
     var tfoot = document.getElementById('supplierTableFoot');
@@ -3167,7 +3167,7 @@
     }
     var item = supplierRFQItems[itemIdx];
     if (!item) return;
-    var qty = Number(item.quantity) || 0;
+    var qty = parseNum(item.quantity);
 
     for (var s = 0; s < n; s++) {
       var chk   = document.getElementById('supChk_' + itemIdx + '_' + s);
@@ -3179,7 +3179,7 @@
         continue;
       }
       var raw   = inp.value.trim();
-      var price = raw !== '' ? (parseFloat(inp.value) || 0) : 0;
+      var price = raw !== '' ? parseNum(inp.value) : 0;
       var total = price * qty;
       totEl.textContent = (raw !== '' || price > 0) ? formatNum(total) : '—';
     }
@@ -3199,10 +3199,10 @@
       for (var i = 0; i < supplierRFQItems.length; i++) {
         var chk = document.getElementById('supChk_' + i + '_' + s);
         if (chk && !chk.checked) continue;
-        var qty   = Number((supplierRFQItems[i] || {}).quantity) || 0;
+        var qty   = parseNum((supplierRFQItems[i] || {}).quantity);
         var inp   = document.getElementById('supPrice_' + i + '_' + s);
         var raw   = inp ? inp.value.trim() : '';
-        var price = (raw !== '') ? (inp ? (parseFloat(inp.value) || 0) : 0) : 0;
+        var price = (raw !== '') ? (inp ? parseNum(inp.value) : 0) : 0;
         if (raw !== '' || price > 0) anyFilled = true;
         grand += price * qty;
       }
@@ -3229,9 +3229,9 @@
       for (var i = 0; i < supplierRFQItems.length; i++) {
         var chk = document.getElementById('supChk_' + i + '_' + s);
         if (chk && !chk.checked) continue;
-        var qty   = Number((supplierRFQItems[i] || {}).quantity) || 0;
+        var qty   = parseNum((supplierRFQItems[i] || {}).quantity);
         var inp   = document.getElementById('supPrice_' + i + '_' + s);
-        var price = inp ? (parseFloat(inp.value) || 0) : 0;
+        var price = inp ? parseNum(inp.value) : 0;
         if (price > 0) hasPrices = true;
         grand += price * qty;
       }
@@ -3390,8 +3390,8 @@
           // Build per-supplier pricing for this supplier column
           var pricingItems = supplierRFQItems.map(function(item, i) {
             var inp      = document.getElementById('supPrice_' + i + '_' + s);
-            var unitCost = inp ? (parseFloat(inp.value) || 0) : 0;
-            var qty      = Number(item.quantity) || 0;
+            var unitCost = inp ? parseNum(inp.value) : 0;
+            var qty      = parseNum(item.quantity);
             return {
               itemDescription: item.itemDescription,
               unitCost:        unitCost,
@@ -3505,6 +3505,11 @@
   }
 
   /* ─── HELPERS ─── */
+
+  function parseNum(v) {
+    if (typeof v === 'number' && !isNaN(v)) return v;
+    return parseFloat(String(v).replace(/[^0-9.\-]/g, '')) || 0;
+  }
 
   function formatNum(n) {
     return Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

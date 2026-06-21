@@ -1,3 +1,9 @@
+var DEBUG = true;
+
+function log() {
+  if (DEBUG) Logger.log.apply(Logger, arguments);
+}
+
 // ================================================
 //  code.gs — Procurement System (Fixed)
 // ================================================
@@ -24,6 +30,11 @@ function cleanPrNo(str) {
     .replace(/[\u200B-\u200F\u2028-\u202E\u2060-\u2069\uFEFF\u00A0\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180E\u2000-\u200A\u202F\u205F\u206A-\u206F\u3000\u2800\u2D7F\uA670-\uA673\uD7CB-\uD7FB\uFFA0]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function parseNum(v) {
+  if (typeof v === 'number' && !isNaN(v)) return v;
+  return parseFloat(String(v).replace(/[^0-9.\-]/g, '')) || 0;
 }
 
 function onOpen() {
@@ -528,9 +539,9 @@ function writeToRFQSheet(prNo) {
         office:          summaryData[i][3],
         unit:            summaryData[i][4],
         itemDescription: summaryData[i][5],
-        quantity:        Number(summaryData[i][6] || 0),
-        unitCost:        Number(summaryData[i][7] || 0),
-        totalCost:       Number(summaryData[i][8] || 0),
+        quantity:        parseNum(summaryData[i][6]),
+        unitCost:        parseNum(summaryData[i][7]),
+        totalCost:       parseNum(summaryData[i][8]),
         purpose:         summaryData[i][9],
         deliveryTerm:    summaryData[i][10],
         paymentTerm:     summaryData[i][11],
@@ -626,6 +637,11 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
   if (!summarySheet) return "SUMMARY sheet not found.";
   if (!aoqSheet)     return "Abstract of Qoutations sheet not found.";
 
+  log("writeToAOQSheet called — prNo: " + prNo);
+  log("suppliersJson: " + (suppliersJson ? suppliersJson.substring(0, 200) : "EMPTY/UNDEFINED"));
+  log("pricingJson: " + (pricingJson ? pricingJson.substring(0, 200) : "EMPTY/UNDEFINED"));
+  log("selectionsJson: " + (selectionsJson ? selectionsJson.substring(0, 200) : "EMPTY/UNDEFINED"));
+
   var summaryData = summarySheet.getDataRange().getValues();
   var items = [];
   var nPrNo = cleanPrNo(prNo).toLowerCase();
@@ -642,9 +658,9 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
         office:          summaryData[i][3],
         unit:            summaryData[i][4],
         itemDescription: summaryData[i][5],
-        quantity:        Number(summaryData[i][6] || 0),
-        unitCost:        Number(summaryData[i][7] || 0),
-        totalCost:       Number(summaryData[i][8] || 0),
+        quantity:        parseNum(summaryData[i][6]),
+        unitCost:        parseNum(summaryData[i][7]),
+        totalCost:       parseNum(summaryData[i][8]),
         purpose:         summaryData[i][9],
         deliveryTerm:    summaryData[i][10],
         paymentTerm:     summaryData[i][11],
@@ -657,6 +673,7 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
   }
 
   if (items.length === 0) return "No items found for PR No.: " + prNo;
+  log("items found: " + items.length);
 
   var DATA_START_ROW = 16;
   var MAX_ITEM_ROWS  = 35;
@@ -697,6 +714,12 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
   var lastDataRow = DATA_START_ROW + items.length - 1;
   aoqSheet.getRange("A43").setValue("TOTAL CONTRACT AMOUNT (FOR AWARD):");
   aoqSheet.getRange("G42").setFormula("=SUM(G" + DATA_START_ROW + ":G" + lastDataRow + ")");
+  // Per-supplier grand total formulas (I42, L42, O42, R42, U42)
+  var supTotalCols = [9, 12, 15, 18, 21];
+  for (var st = 0; st < supTotalCols.length; st++) {
+    var cl = String.fromCharCode(64 + supTotalCols[st]);
+    aoqSheet.getRange(42, supTotalCols[st]).setFormula("=SUM(" + cl + DATA_START_ROW + ":" + cl + lastDataRow + ")");
+  }
 
   if (first.paymentTerm) aoqSheet.getRange("F44").setValue(first.paymentTerm);
   if (first.deliveryPeriod) aoqSheet.getRange("F45").setValue(first.deliveryPeriod);
@@ -712,8 +735,10 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
   if (suppliersJson) {
     try {
       var suppliers = JSON.parse(suppliersJson);
+      log("parsed suppliers count: " + suppliers.length);
       for (var s = 0; s < Math.min(suppliers.length, 5); s++) {
         var sup = suppliers[s];
+        log("supplier[" + s + "]: name='" + sup.name + "', address='" + (sup.address || '') + "'");
         if (sup.name) {
           var value = sup.name;
           if (sup.address) value += '\n' + sup.address;
@@ -723,26 +748,64 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
     } catch (e) {
       Logger.log("Error parsing suppliersJson: " + e);
     }
+  } else {
+    log("suppliersJson is EMPTY or UNDEFINED — supplier names will NOT be written");
   }
 
-  // Write per-supplier pricing data when provided
+  // Write per-supplier pricing data when provided — FIXED ROW MAPPING
   if (pricingJson) {
     try {
       var pricingData = JSON.parse(pricingJson);
+      log("parsed pricing count: " + pricingData.length);
+
+      // Build description→row map from the `items` array (which was written
+      // sequentially to the AOQ sheet starting at DATA_START_ROW).
+      var aoqItemMap = {};
+      for (var mi = 0; mi < items.length; mi++) {
+        var desc = String(items[mi].itemDescription || '').trim().toLowerCase();
+        if (desc) {
+          aoqItemMap[desc] = DATA_START_ROW + mi;
+        }
+      }
+      log("aoqItemMap built with " + Object.keys(aoqItemMap).length + " entries");
+
       for (var s = 0; s < Math.min(pricingData.length, 5); s++) {
         var pSup = pricingData[s];
+        log("pricing[" + s + "]: name='" + (pSup ? pSup.name : 'null') + "', items=" + (pSup && pSup.items ? pSup.items.length : 0));
         if (!pSup || !pSup.items || pSup.items.length === 0) continue;
-        var startCol = 8 + s * 3;
-        for (var r = 0; r < Math.min(pSup.items.length, MAX_ITEM_ROWS); r++) {
+
+        var startCol = 8 + s * 3;  // Unit Cost column
+
+        for (var r = 0; r < pSup.items.length; r++) {
           var pItem = pSup.items[r];
-          var row = DATA_START_ROW + r;
-          aoqSheet.getRange(row, startCol).setValue(Number(pItem.unitCost) || 0);
-          aoqSheet.getRange(row, startCol + 1).setValue(Number(pItem.totalCost) || 0);
+          var itemDesc = String(pItem.itemDescription || '').trim();
+          if (!itemDesc) {
+            Logger.log("Supplier '" + pSup.name + "' item at index " + r + " has no description — skipping");
+            continue;
+          }
+
+          var lookupKey = itemDesc.toLowerCase();
+          var aoqRow = aoqItemMap[lookupKey];
+
+          if (!aoqRow) {
+            Logger.log("WARNING: Item '" + itemDesc + "' from supplier '" + pSup.name + "' not found in AOQ — skipping");
+            continue;
+          }
+
+          var uc = parseNum(pItem.unitCost);
+          var tc = parseNum(pItem.totalCost);
+
+          Logger.log("Supplier '" + pSup.name + "' → Item: '" + itemDesc + "' → AOQ Row: " + aoqRow + ", UC: " + uc + ", TC: " + tc + ", Col: " + startCol);
+
+          aoqSheet.getRange(aoqRow, startCol).setValue(uc);
+          aoqSheet.getRange(aoqRow, startCol + 1).setValue(tc);
         }
       }
     } catch (e) {
       Logger.log("Error parsing pricingJson: " + e);
     }
+  } else {
+    log("pricingJson is EMPTY or UNDEFINED — supplier pricing will NOT be written");
   }
 
   // Write per-supplier selection state (selected item descriptions) to row 15
@@ -779,6 +842,8 @@ function writeToAOQSheetWithExistingData(prNo) {
   var storedPrNo = cleanPrNo(String(aoqSheet.getRange("D11").getValue() || '')).toLowerCase();
   var suppliers = { list: [], pricing: [] };
 
+  log("writeToAOQSheetWithExistingData — prNo: " + prNo + ", nPrNo: " + nPrNo + ", storedPrNo: '" + storedPrNo + "', match: " + (storedPrNo === nPrNo));
+
   var supplierCols = [8, 11, 14, 17, 20];
   var selections = [];
 
@@ -795,14 +860,17 @@ function writeToAOQSheetWithExistingData(prNo) {
       var col = supplierCols[s];
       var nameCell = aoqSheet.getRange(supplierRow, col).getValue();
       var fullName = String(nameCell || '').trim();
-      if (!fullName) continue;
 
-      var name = fullName;
+      var name = '';
       var address = '';
-      var nlIdx = fullName.indexOf('\n');
-      if (nlIdx > -1) {
-        name = fullName.substring(0, nlIdx).trim();
-        address = fullName.substring(nlIdx + 1).trim();
+      if (fullName) {
+        var nlIdx = fullName.indexOf('\n');
+        if (nlIdx > -1) {
+          name = fullName.substring(0, nlIdx).trim();
+          address = fullName.substring(nlIdx + 1).trim();
+        } else {
+          name = fullName;
+        }
       }
 
       suppliers.list.push({ name: name, address: address });
@@ -819,9 +887,7 @@ function writeToAOQSheetWithExistingData(prNo) {
           var qty = Number(qtys[r] || 0);
           tCost = uCost * qty;
         }
-        if (uCost > 0 || tCost > 0) {
-          items.push({ itemDescription: desc, unitCost: uCost, totalCost: tCost });
-        }
+        items.push({ itemDescription: desc, unitCost: uCost, totalCost: tCost });
       }
       suppliers.pricing.push({ name: name, items: items });
     }
@@ -832,10 +898,61 @@ function writeToAOQSheetWithExistingData(prNo) {
       var selStr = String(selCell || '').trim();
       selections.push(selStr);
     }
+  } else {
+    // Fallback: read supplier data from AOQ_SupplierData when AOQ sheet has a different PR
+    var aoqDataSheet = ss.getSheetByName("AOQ_SupplierData");
+    if (aoqDataSheet) {
+      var aoqData = aoqDataSheet.getDataRange().getValues();
+      if (aoqData.length > 0 && String(aoqData[0][0] || '').toLowerCase() === 'pr no.') {
+        var aoqRows = [];
+        for (var i = 1; i < aoqData.length; i++) {
+          if (cleanPrNo(String(aoqData[i][0] || '')).toLowerCase() === nPrNo) {
+            aoqRows.push({
+              supplierName:    String(aoqData[i][1] || '').trim(),
+              supplierAddress: String(aoqData[i][2] || '').trim(),
+              itemDescription: aoqData[i][4],
+              unitCost:        Number(aoqData[i][5] || 0),
+              totalCost:       Number(aoqData[i][6] || 0),
+              selected:        String(aoqData[i][7] || '').toUpperCase() === 'TRUE',
+              colIdx:          Number(aoqData[i][8] || 0)
+            });
+          }
+        }
+        if (aoqRows.length > 0) {
+          var groups = {};
+          var selByCol = {};
+          aoqRows.forEach(function(row) {
+            var key = row.colIdx;
+            if (!groups[key]) {
+              groups[key] = { name: row.supplierName, address: row.supplierAddress, items: [] };
+              selByCol[key] = [];
+            }
+            groups[key].items.push({ itemDescription: row.itemDescription, unitCost: row.unitCost, totalCost: row.totalCost });
+            if (row.selected) selByCol[key].push(row.itemDescription);
+          });
+          // Build arrays aligned by colIdx (0-4) — always 5 entries for correct column mapping
+          for (var col = 0; col < 5; col++) {
+            if (groups[col] && groups[col].name) {
+              suppliers.list.push({ name: groups[col].name, address: groups[col].address });
+              suppliers.pricing.push({ name: groups[col].name, items: groups[col].items });
+            } else {
+              suppliers.list.push({ name: '', address: '' });
+              suppliers.pricing.push({ name: '', items: groups[col] ? groups[col].items : [] });
+            }
+            selections[col] = selByCol[col] ? selByCol[col].join(',') : '';
+          }
+        }
+      }
+    }
   }
+
+  log("writeToAOQSheetWithExistingData — suppliers.list: " + suppliers.list.length + ", suppliers.pricing: " + suppliers.pricing.length);
 
   var suppliersJson = suppliers.list.length > 0 ? JSON.stringify(suppliers.list) : '';
   var pricingJson = suppliers.pricing.length > 0 ? JSON.stringify(suppliers.pricing) : '';
+
+  log("suppliersJson built: " + (suppliersJson ? suppliersJson.substring(0, 150) : "EMPTY"));
+  log("pricingJson built: " + (pricingJson ? pricingJson.substring(0, 150) : "EMPTY"));
 
   // Build selections JSON from row 15 data (preserved during search)
   var selectionsData = [];
@@ -889,14 +1006,17 @@ function loadSupplierPricing(prNo) {
         var col = supplierCols[s];
         var nameCell = aoqSheet.getRange(supplierRow, col).getValue();
         var fullName = String(nameCell || '').trim();
-        if (!fullName) continue;
 
-        var name = fullName;
+        var name = '';
         var address = '';
-        var nlIdx = fullName.indexOf('\n');
-        if (nlIdx > -1) {
-          name = fullName.substring(0, nlIdx).trim();
-          address = fullName.substring(nlIdx + 1).trim();
+        if (fullName) {
+          var nlIdx = fullName.indexOf('\n');
+          if (nlIdx > -1) {
+            name = fullName.substring(0, nlIdx).trim();
+            address = fullName.substring(nlIdx + 1).trim();
+          } else {
+            name = fullName;
+          }
         }
 
         // Read selection state from row 15
@@ -917,13 +1037,11 @@ function loadSupplierPricing(prNo) {
             var qty = Number(qtys[r] || 0);
             tCost = uCost * qty;
           }
-          if (uCost > 0 || tCost > 0) {
-            items.push({
-              itemDescription: desc,
-              unitCost: uCost,
-              totalCost: tCost
-            });
-          }
+          items.push({
+            itemDescription: desc,
+            unitCost: uCost,
+            totalCost: tCost
+          });
         }
 
         suppliers.push({
@@ -1019,9 +1137,9 @@ function loadSupplierPricing(prNo) {
       if (cleanPrNo(summaryData[i][1]).toLowerCase() === nPrNo3) {
         summaryItems.push({
           itemDescription: summaryData[i][5],
-          quantity: Number(summaryData[i][6] || 0),
-          unitCost: Number(summaryData[i][7] || 0),
-          totalCost: Number(summaryData[i][8] || 0),
+          quantity: parseNum(summaryData[i][6]),
+          unitCost: parseNum(summaryData[i][7]),
+          totalCost: parseNum(summaryData[i][8]),
           supplier: summaryData[i][13],
           supplierAddress: summaryData[i][14]
         });
@@ -1120,7 +1238,7 @@ function writeToPOSheet(prNo) {
       var dateObj  = (rawDate instanceof Date) ? rawDate : new Date(rawDate);
       var formatted = Utilities.formatDate(dateObj, Session.getScriptTimeZone(), "MM/dd/yyyy");
 
-      var qty       = Number(summaryData[i][6] || 0);
+      var qty       = parseNum(summaryData[i][6]);
       var unitCost  = selectedPrices[desc].unitCost;
       var totalCost = selectedPrices[desc].totalCost;
       if (totalCost === 0 && qty > 0 && unitCost > 0) {
@@ -1134,19 +1252,19 @@ function writeToPOSheet(prNo) {
         office:          summaryData[i][3],
         unit:            summaryData[i][4],
         itemDescription: summaryData[i][5],
-        quantity:        qty,
-        unitCost:        unitCost,
-        totalCost:       totalCost,
+        quantity:        parseNum(summaryData[i][6]),
+        unitCost:        parseNum(summaryData[i][7]),
+        totalCost:       parseNum(summaryData[i][8]),
         purpose:         summaryData[i][9],
         deliveryTerm:    summaryData[i][10],
         paymentTerm:     summaryData[i][11],
         deliveryPeriod:  summaryData[i][12],
-        supplier:        supplierName,
-        supplierAddress: supplierAddress,
-        tin:             supplierTin,
+        supplier:        summaryData[i][13],
+        supplierAddress: summaryData[i][14],
+        tin:             summaryData[i][15],
         modeProcurement: summaryData[i][16],
         placeDelivery:   summaryData[i][17],
-        dateDelivery:    summaryData[i][18]
+        dateDelivery:    formattedD
       });
     }
   }
@@ -1353,12 +1471,14 @@ function saveFullSupplierData(prNo, allDataJson) {
   }
 
   // --- Re-populate Abstract of Qoutations sheet ---
-  var suppliersList = allSuppliers.map(function(sup) {
-    return { name: sup.name, address: sup.address || '' };
-  });
-  var pricingList = allSuppliers.map(function(sup) {
-    return { name: sup.name, items: sup.items || [] };
-  });
+  // Always produce exactly 5 entries for correct column mapping
+  var suppliersList = [];
+  var pricingList = [];
+  for (var si = 0; si < 5; si++) {
+    var sup = allSuppliers[si] || { name: '', address: '', items: [] };
+    suppliersList.push({ name: sup.name || '', address: sup.address || '' });
+    pricingList.push({ name: sup.name || '', items: sup.items || [] });
+  }
 
   var selectionsData = allData.selections || [];
   var selectionsJson = selectionsData.length > 0 ? JSON.stringify(selectionsData) : '';
@@ -1405,9 +1525,9 @@ function createSupplierRFQSheet(prNo, supplierName) {
         office:          summaryData[i][3],
         unit:            summaryData[i][4],
         itemDescription: summaryData[i][5],
-        quantity:        Number(summaryData[i][6] || 0),
-        unitCost:        Number(summaryData[i][7] || 0),
-        totalCost:       Number(summaryData[i][8] || 0),
+        quantity:        parseNum(summaryData[i][6]),
+        unitCost:        parseNum(summaryData[i][7]),
+        totalCost:       parseNum(summaryData[i][8]),
         purpose:         summaryData[i][9],
         deliveryTerm:    summaryData[i][10],
         paymentTerm:     summaryData[i][11],
@@ -1509,13 +1629,13 @@ function writeToPRSheet(prNo) {
   // Previously started at 4, which silently skipped the first 3 data rows.
   for (var i = 1; i < summaryData.length; i++) {
     if (cleanPrNo(summaryData[i][1]).toLowerCase() === nPrNo) {
-      var qty      = Number(summaryData[i][6] || 0);  // col G → Quantity
-      var unitCost = Number(summaryData[i][7] || 0);  // col H → Unit Cost
+      var qty      = parseNum(summaryData[i][6]);  // col G → Quantity
+      var unitCost = parseNum(summaryData[i][7]);  // col H → Unit Cost
 
       // FIX: Read the pre-computed Total Cost from col I (index 8)
       // instead of recomputing, so it matches exactly what was saved.
       // Safety: if stored total is 0 but qty and cost aren't, recompute.
-      var totalCost = Number(summaryData[i][8] || 0); // col I → Total Cost
+      var totalCost = parseNum(summaryData[i][8]); // col I → Total Cost
       if (totalCost === 0 && qty > 0 && unitCost > 0) {
         totalCost = qty * unitCost;
       }
