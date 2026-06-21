@@ -313,24 +313,64 @@ function searchItemByType(prNo, formType) {
    of individual items.
 ================================= */
 function searchSuppliersByPR(prNo) {
-  const sheet = getSheet();
-  const data = sheet.getDataRange().getValues();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const nInput = cleanPrNo(prNo).toLowerCase();
+
+  // Build item lookup from SUMMARY to get full item details
+  const summarySheet = getSheet();
+  const summaryData = summarySheet.getDataRange().getValues();
+  const itemLookup = {};
+  for (let i = 1; i < summaryData.length; i++) {
+    const nStored = cleanPrNo(summaryData[i][1]).toLowerCase();
+    if (nStored !== nInput) continue;
+    const desc = String(summaryData[i][5] || '').trim().toLowerCase();
+    if (!desc) continue;
+    itemLookup[desc] = {
+      row: i + 1,
+      date: formatDate(summaryData[i][0]),
+      prNo: cleanPrNo(summaryData[i][1]),
+      fundCluster: summaryData[i][2],
+      office: summaryData[i][3],
+      unit: summaryData[i][4],
+      itemDescription: summaryData[i][5],
+      quantity: Number(summaryData[i][6]) || 0,
+      unitCost: Number(summaryData[i][7]) || 0,
+      totalCost: Number(summaryData[i][8]) || 0,
+      purpose: summaryData[i][9],
+      deliveryTerm: summaryData[i][10],
+      paymentTerm: summaryData[i][11],
+      deliveryPeriod: formatDate(summaryData[i][12]),
+      supplier: summaryData[i][13] || '',
+      supplierAddress: summaryData[i][14] || '',
+      tin: summaryData[i][15] || '',
+      modeProcurement: summaryData[i][16] || '',
+      placeDelivery: summaryData[i][17] || '',
+      dateDelivery: formatDate(summaryData[i][18])
+    };
+  }
+
+  // Read supplier selections from AOQ_SupplierData
+  const aoqSheet = ss.getSheetByName("AOQ_SupplierData");
+  if (!aoqSheet) return { prNo: cleanPrNo(prNo), suppliers: [] };
+
+  const aoqData = aoqSheet.getDataRange().getValues();
   const grouped = {};
 
-  for (let i = 1; i < data.length; i++) {
-    const nStored = cleanPrNo(data[i][1]).toLowerCase();
-    if (nStored !== nInput) continue;
+  console.log({msg: "searchSuppliersByPR reading AOQ_SupplierData + SUMMARY", prNo: prNo, nInput: nInput, aoqRows: aoqData.length, summaryRows: summaryData.length});
 
-    const supplierName = (data[i][13] || '').trim() || 'Unassigned';
+  for (let i = 1; i < aoqData.length; i++) {
+    if (cleanPrNo(String(aoqData[i][0] || '')).toLowerCase() !== nInput) continue;
+    if (String(aoqData[i][7] || '').toUpperCase() !== 'TRUE') continue;
+
+    const supplierName = String(aoqData[i][1] || '').trim() || 'Unassigned';
     if (!grouped[supplierName]) {
       grouped[supplierName] = {
         supplier: supplierName,
-        supplierAddress: data[i][14] || '',
-        tin: data[i][15] || '',
-        modeProcurement: data[i][16] || '',
-        placeDelivery: data[i][17] || '',
-        dateDelivery: formatDate(data[i][18]),
+        supplierAddress: String(aoqData[i][2] || '').trim(),
+        tin: String(aoqData[i][3] || '').trim(),
+        modeProcurement: '',
+        placeDelivery: '',
+        dateDelivery: '',
         items: [],
         itemCount: 0,
         totalAmount: 0
@@ -338,48 +378,46 @@ function searchSuppliersByPR(prNo) {
     }
 
     const group = grouped[supplierName];
-    const qty = Number(data[i][6]) || 0;
-    const cost = Number(data[i][7]) || 0;
-    const total = qty * cost;
+    const aoqUnitCost = Number(aoqData[i][5]) || 0;
+    const aoqTotalCost = Number(aoqData[i][6]) || 0;
+    const aoqDesc = String(aoqData[i][4] || '').trim();
+    const descKey = aoqDesc.toLowerCase();
+
+    // Use AOQ unit cost if available, otherwise fall back to SUMMARY
+    const summaryItem = itemLookup[descKey] || {};
+    const unitCost = aoqUnitCost || summaryItem.unitCost || 0;
+    const totalCost = aoqTotalCost || summaryItem.totalCost || 0;
 
     group.items.push({
-      row: i + 1,
-      date: formatDate(data[i][0]),
-      prNo: cleanPrNo(data[i][1]),
-      fundCluster: data[i][2],
-      office: data[i][3],
-      unit: data[i][4],
-      itemDescription: data[i][5],
-      quantity: qty,
-      unitCost: cost,
-      totalCost: total,
-      purpose: data[i][9],
-      deliveryTerm: data[i][10],
-      paymentTerm: data[i][11],
-      deliveryPeriod: formatDate(data[i][12]),
+      row: summaryItem.row || (i + 1),
+      date: summaryItem.date || '',
+      prNo: cleanPrNo(prNo),
+      fundCluster: summaryItem.fundCluster || '',
+      office: summaryItem.office || '',
+      unit: summaryItem.unit || '',
+      itemDescription: summaryItem.itemDescription || aoqDesc,
+      quantity: summaryItem.quantity || 0,
+      unitCost: unitCost,
+      totalCost: totalCost,
+      purpose: summaryItem.purpose || '',
+      deliveryTerm: summaryItem.deliveryTerm || '',
+      paymentTerm: summaryItem.paymentTerm || '',
+      deliveryPeriod: summaryItem.deliveryPeriod || '',
       supplier: supplierName,
-      supplierAddress: data[i][14] || '',
-      tin: data[i][15] || '',
-      modeProcurement: data[i][16] || '',
-      placeDelivery: data[i][17] || '',
-      dateDelivery: formatDate(data[i][18])
+      supplierAddress: String(aoqData[i][2] || '').trim(),
+      tin: String(aoqData[i][3] || '').trim(),
+      modeProcurement: summaryItem.modeProcurement || '',
+      placeDelivery: summaryItem.placeDelivery || '',
+      dateDelivery: summaryItem.dateDelivery || ''
     });
 
     group.itemCount++;
-    group.totalAmount += total;
-
-    if (data[i][14] && !group._addrSet) { group.supplierAddress = data[i][14]; group._addrSet = true; }
-    if (data[i][15] && !group._tinSet) { group.tin = data[i][15]; group._tinSet = true; }
-    if (data[i][16] && !group._mpSet) { group.modeProcurement = data[i][16]; group._mpSet = true; }
-    if (data[i][17] && !group._pdSet) { group.placeDelivery = data[i][17]; group._pdSet = true; }
+    group.totalAmount += totalCost;
   }
 
-  const suppliers = Object.keys(grouped).map(function(key) {
-    const g = grouped[key];
-    delete g._addrSet; delete g._tinSet; delete g._mpSet; delete g._pdSet;
-    return g;
-  });
+  const suppliers = Object.keys(grouped).map(function(key) { return grouped[key]; });
 
+  console.log({msg: "searchSuppliersByPR result", prNo: prNo, supplierCount: suppliers.length, supplierNames: suppliers.map(function(s){return s.supplier;})});
   return { prNo: cleanPrNo(prNo), suppliers: suppliers };
 }
 
@@ -389,6 +427,7 @@ function searchSuppliersByPR(prNo) {
    items of the same supplier+PR combo.
 ================================= */
 function updatePOFieldsForSupplier(prNo, supplier, poFields) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
   const nInput = cleanPrNo(prNo).toLowerCase();
@@ -411,6 +450,21 @@ function updatePOFieldsForSupplier(prNo, supplier, poFields) {
 
       sheet.getRange(row, 1, 1, 19).setValues([current]);
       updatedCount++;
+    }
+  }
+
+  // Also update AOQ_SupplierData to keep in sync
+  const aoqSheet = ss.getSheetByName("AOQ_SupplierData");
+  if (aoqSheet) {
+    const aoqData = aoqSheet.getDataRange().getValues();
+    for (let i = 1; i < aoqData.length; i++) {
+      const nPrNo = cleanPrNo(String(aoqData[i][0] || '')).toLowerCase();
+      const storedSup = String(aoqData[i][1] || '').trim();
+      if (nPrNo === nInput && storedSup === supplier) {
+        aoqSheet.getRange(i + 1, 2).setValue(poFields.supplier);
+        aoqSheet.getRange(i + 1, 3).setValue(poFields.supplierAddress);
+        aoqSheet.getRange(i + 1, 4).setValue(poFields.tin);
+      }
     }
   }
 

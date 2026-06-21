@@ -1997,49 +1997,59 @@
 
     function doSearch() {
       console.log("doSearch fired — prNo:", JSON.stringify(prNo), "type:", type);
-      var serverFn = (type === 'PO') ? 'searchSuppliersByPR' : 'searchItem';
 
-      google.script.run
-        .withSuccessHandler(function(results) {
-          var isPO = (type === 'PO');
-          var hasResults = isPO
-            ? (results && results.suppliers && results.suppliers.length > 0)
-            : (results && results.length > 0);
+      var errorHandler = function(err) { alert("Search failed: " + err.message); };
 
-          console.log("doSearch success handler — results:", isPO ? "suppliers=" + (results ? results.suppliers.length : 0) : "items=" + (results ? results.length : 0));
-          document.getElementById('resultsArea').innerHTML = '';
+      var successHandler = function(results) {
+        var isPO = (type === 'PO');
+        var hasResults = isPO
+          ? (results && results.suppliers && results.suppliers.length > 0)
+          : (results && results.length > 0);
 
-          if (!hasResults) {
-            if (results && results._diagnostics) {
-              renderDiagnostics(results._diagnostics);
-            } else {
-              alert("No " + (isPO ? "suppliers" : "items") + " found for PR No.: " + prNo);
-            }
-            return;
-          }
+        console.log("doSearch success handler — results:", isPO ? "suppliers=" + (results ? results.suppliers.length : 0) : "items=" + (results ? results.length : 0));
+        document.getElementById('resultsArea').innerHTML = '';
 
-          if (type === 'PR') {
-            clearItemFields();
-            loadPRItemsIntoTable(results);
-
-            var existing = document.getElementById('selectNotice');
-            if (existing) existing.parentNode.removeChild(existing);
-            var notice = document.createElement('div');
-            notice.id = 'selectNotice';
-            notice.className = 'auto-load-notice';
-            notice.textContent = '\u2705 Found ' + results.length + ' item(s) for PR No. "' + prNo + '" — results are shown below. Click "Select" in the table to edit a specific item.';
-            document.getElementById('resultsArea').appendChild(notice);
-
-          } else if (type === 'PO') {
-            searchResults = results;
-            buildSupplierResultsTable(results, prNo);
+        if (!hasResults) {
+          if (results && results._diagnostics) {
+            renderDiagnostics(results._diagnostics);
           } else {
-            searchResults = results;
-            buildResultsTable(results, prNo);
+            alert("No " + (isPO ? "suppliers" : "items") + " found for PR No.: " + prNo);
           }
-        })
-        .withFailureHandler(function(err) { alert("Search failed: " + err.message); })
-        [serverFn](prNo);
+          return;
+        }
+
+        if (type === 'PR') {
+          clearItemFields();
+          loadPRItemsIntoTable(results);
+
+          var existing = document.getElementById('selectNotice');
+          if (existing) existing.parentNode.removeChild(existing);
+          var notice = document.createElement('div');
+          notice.id = 'selectNotice';
+          notice.className = 'auto-load-notice';
+          notice.textContent = '\u2705 Found ' + results.length + ' item(s) for PR No. "' + prNo + '" — results are shown below. Click "Select" in the table to edit a specific item.';
+          document.getElementById('resultsArea').appendChild(notice);
+
+        } else if (type === 'PO') {
+          searchResults = results;
+          buildSupplierResultsTable(results, prNo);
+        } else {
+          searchResults = results;
+          buildResultsTable(results, prNo);
+        }
+      };
+
+      if (type === 'PO') {
+        google.script.run
+          .withSuccessHandler(successHandler)
+          .withFailureHandler(errorHandler)
+          .searchSuppliersByPR(prNo);
+      } else {
+        google.script.run
+          .withSuccessHandler(successHandler)
+          .withFailureHandler(errorHandler)
+          .searchItem(prNo);
+      }
     }
 
     // Chain: write first, then search — avoids GAS warden TransportError from concurrent calls
@@ -2154,6 +2164,8 @@
 
   /* ─── BUILD SUPPLIER RESULTS TABLE (PO form) ─── */
   function buildSupplierResultsTable(data, prNo) {
+    window._currentSupplierGroup = null;
+    window._currentSupplierName = null;
     if (!data || !data.suppliers) return;
     var suppliers = data.suppliers;
 
