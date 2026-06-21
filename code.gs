@@ -307,6 +307,118 @@ function searchItemByType(prNo, formType) {
 }
 
 /* =================================
+   SEARCH SUPPLIERS BY PR No.
+   Groups items by supplier name so
+   the PO form shows suppliers instead
+   of individual items.
+================================= */
+function searchSuppliersByPR(prNo) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  const nInput = cleanPrNo(prNo).toLowerCase();
+  const grouped = {};
+
+  for (let i = 1; i < data.length; i++) {
+    const nStored = cleanPrNo(data[i][1]).toLowerCase();
+    if (nStored !== nInput) continue;
+
+    const supplierName = (data[i][13] || '').trim() || 'Unassigned';
+    if (!grouped[supplierName]) {
+      grouped[supplierName] = {
+        supplier: supplierName,
+        supplierAddress: data[i][14] || '',
+        tin: data[i][15] || '',
+        modeProcurement: data[i][16] || '',
+        placeDelivery: data[i][17] || '',
+        dateDelivery: formatDate(data[i][18]),
+        items: [],
+        itemCount: 0,
+        totalAmount: 0
+      };
+    }
+
+    const group = grouped[supplierName];
+    const qty = Number(data[i][6]) || 0;
+    const cost = Number(data[i][7]) || 0;
+    const total = qty * cost;
+
+    group.items.push({
+      row: i + 1,
+      date: formatDate(data[i][0]),
+      prNo: cleanPrNo(data[i][1]),
+      fundCluster: data[i][2],
+      office: data[i][3],
+      unit: data[i][4],
+      itemDescription: data[i][5],
+      quantity: qty,
+      unitCost: cost,
+      totalCost: total,
+      purpose: data[i][9],
+      deliveryTerm: data[i][10],
+      paymentTerm: data[i][11],
+      deliveryPeriod: formatDate(data[i][12]),
+      supplier: supplierName,
+      supplierAddress: data[i][14] || '',
+      tin: data[i][15] || '',
+      modeProcurement: data[i][16] || '',
+      placeDelivery: data[i][17] || '',
+      dateDelivery: formatDate(data[i][18])
+    });
+
+    group.itemCount++;
+    group.totalAmount += total;
+
+    if (data[i][14] && !group._addrSet) { group.supplierAddress = data[i][14]; group._addrSet = true; }
+    if (data[i][15] && !group._tinSet) { group.tin = data[i][15]; group._tinSet = true; }
+    if (data[i][16] && !group._mpSet) { group.modeProcurement = data[i][16]; group._mpSet = true; }
+    if (data[i][17] && !group._pdSet) { group.placeDelivery = data[i][17]; group._pdSet = true; }
+  }
+
+  const suppliers = Object.keys(grouped).map(function(key) {
+    const g = grouped[key];
+    delete g._addrSet; delete g._tinSet; delete g._mpSet; delete g._pdSet;
+    return g;
+  });
+
+  return { prNo: cleanPrNo(prNo), suppliers: suppliers };
+}
+
+/* =================================
+   BATCH UPDATE PO FIELDS FOR SUPPLIER
+   Syncs PO-level fields across all
+   items of the same supplier+PR combo.
+================================= */
+function updatePOFieldsForSupplier(prNo, supplier, poFields) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  const nInput = cleanPrNo(prNo).toLowerCase();
+  let updatedCount = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const nStored = cleanPrNo(data[i][1]).toLowerCase();
+    const storedSupplier = (data[i][13] || '').trim();
+
+    if (nStored === nInput && storedSupplier === supplier) {
+      const row = i + 1;
+      const current = sheet.getRange(row, 1, 1, 19).getValues()[0];
+
+      current[13] = poFields.supplier;
+      current[14] = poFields.supplierAddress;
+      current[15] = poFields.tin;
+      current[16] = poFields.modeProcurement;
+      current[17] = poFields.placeDelivery;
+      current[18] = poFields.dateDelivery;
+
+      sheet.getRange(row, 1, 1, 19).setValues([current]);
+      updatedCount++;
+    }
+  }
+
+  SpreadsheetApp.flush();
+  return "PO fields synced for " + updatedCount + " item(s) under supplier: " + supplier;
+}
+
+/* =================================
    UPDATE ITEM
 ================================= */
 function updateItem(data) {

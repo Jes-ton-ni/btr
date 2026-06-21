@@ -400,6 +400,22 @@
     }
     .select-btn:hover { background: #0b5394; }
 
+    .item-nav-btn {
+      background: #e3f2fd;
+      color: #1565c0;
+      border: 1px solid #90caf9;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+    .item-nav-btn:hover { background: #bbdefb; }
+    .item-nav-btn.item-nav-active { background: #1565c0; color: #fff; border-color: #1565c0; }
+
     /* ── SUPPLIER SCREEN ── */
     .supplier-screen-wrap {
       background: #fff;
@@ -1981,15 +1997,23 @@
 
     function doSearch() {
       console.log("doSearch fired — prNo:", JSON.stringify(prNo), "type:", type);
+      var serverFn = (type === 'PO') ? 'searchSuppliersByPR' : 'searchItem';
+
       google.script.run
         .withSuccessHandler(function(results) {
-          console.log("doSearch success handler — results:", results ? "count=" + results.length : "null/undefined");
+          var isPO = (type === 'PO');
+          var hasResults = isPO
+            ? (results && results.suppliers && results.suppliers.length > 0)
+            : (results && results.length > 0);
+
+          console.log("doSearch success handler — results:", isPO ? "suppliers=" + (results ? results.suppliers.length : 0) : "items=" + (results ? results.length : 0));
           document.getElementById('resultsArea').innerHTML = '';
-          if (!results || results.length === 0) {
+
+          if (!hasResults) {
             if (results && results._diagnostics) {
               renderDiagnostics(results._diagnostics);
             } else {
-              alert("No items found for PR No.: " + prNo);
+              alert("No " + (isPO ? "suppliers" : "items") + " found for PR No.: " + prNo);
             }
             return;
           }
@@ -2006,13 +2030,16 @@
             notice.textContent = '\u2705 Found ' + results.length + ' item(s) for PR No. "' + prNo + '" — results are shown below. Click "Select" in the table to edit a specific item.';
             document.getElementById('resultsArea').appendChild(notice);
 
+          } else if (type === 'PO') {
+            searchResults = results;
+            buildSupplierResultsTable(results, prNo);
           } else {
             searchResults = results;
             buildResultsTable(results, prNo);
           }
         })
         .withFailureHandler(function(err) { alert("Search failed: " + err.message); })
-        .searchItem(prNo);
+        [serverFn](prNo);
     }
 
     // Chain: write first, then search — avoids GAS warden TransportError from concurrent calls
@@ -2123,6 +2150,106 @@
 
     html += '</tbody></table>';
     document.getElementById('resultsArea').innerHTML = html;
+  }
+
+  /* ─── BUILD SUPPLIER RESULTS TABLE (PO form) ─── */
+  function buildSupplierResultsTable(data, prNo) {
+    if (!data || !data.suppliers) return;
+    var suppliers = data.suppliers;
+
+    var indicator = '<div class="auto-load-notice" style="margin-bottom:12px;">'
+      + '\u2705 Found ' + suppliers.length + ' supplier(s) for PR No. &ldquo;' + (prNo || '') + '&rdquo; &mdash; Select a supplier to edit the purchase order.'
+      + '</div>';
+
+    var html = indicator
+      + '<table class="results-table" id="resultsTable">'
+      + '<thead><tr>'
+      + '<th>Supplier Name</th>'
+      + '<th>Address</th>'
+      + '<th>TIN</th>'
+      + '<th>Items</th>'
+      + '<th>Total Amount</th>'
+      + '<th>Action</th>'
+      + '</tr></thead><tbody>';
+
+    suppliers.forEach(function(group) {
+      var safeId = 'supplierRow_' + String(group.supplier).replace(/[^a-zA-Z0-9_-]/g, '_');
+      html += '<tr id="' + safeId + '">'
+        + '<td><strong>' + escHtml(group.supplier) + '</strong></td>'
+        + '<td>' + escHtml(group.supplierAddress) + '</td>'
+        + '<td>' + escHtml(group.tin) + '</td>'
+        + '<td style="text-align:center;">' + group.itemCount + '</td>'
+        + '<td>\u20b1' + formatNum(group.totalAmount) + '</td>'
+        + '<td>'
+        + '<button class="select-btn" onclick=\'loadSupplierPO(' + JSON.stringify(group).replace(/'/g, '&#39;') + ')\'>\u270f\uFE0F SELECT</button>'
+        + '</td>'
+        + '</tr>';
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('resultsArea').innerHTML = html;
+  }
+
+  /* ─── LOAD SUPPLIER PO DATA ─── */
+  function loadSupplierPO(group) {
+    window._currentSupplierGroup = group;
+    window._currentSupplierName = group.supplier;
+
+    var firstItem = group.items[0];
+    if (!firstItem) return;
+
+    loadDataToForm(firstItem);
+
+    setVal('supplier', group.supplier);
+    setVal('supplierAddress', group.supplierAddress);
+    setVal('tin', group.tin);
+    setVal('modeProcurement', group.modeProcurement);
+    setVal('placeDelivery', group.placeDelivery);
+    setVal('dateDelivery', group.dateDelivery);
+
+    document.querySelectorAll('#resultsTable tbody tr').forEach(function(r) { r.classList.remove('selected-row'); });
+    var safeId = 'supplierRow_' + String(group.supplier).replace(/[^a-zA-Z0-9_-]/g, '_');
+    var selectedRow = document.getElementById(safeId);
+    if (selectedRow) selectedRow.classList.add('selected-row');
+
+    var existing = document.getElementById('selectNotice');
+    if (existing) existing.parentNode.removeChild(existing);
+
+    var itemLinks = group.items.map(function(item, idx) {
+      var label = item.itemDescription
+        ? item.itemDescription.substring(0, 30) + (item.itemDescription.length > 30 ? '...' : '')
+        : 'Item ' + (idx + 1);
+      return '<button class="item-nav-btn" onclick="loadPOItem(' + idx + ')">' + escHtml(label) + '</button>';
+    }).join('');
+
+    var notice = document.createElement('div');
+    notice.id = 'selectNotice';
+    notice.className = 'auto-load-notice';
+    notice.innerHTML = '\u2705 Loaded supplier &ldquo;' + escHtml(group.supplier) + '&rdquo; with <strong>' + group.itemCount + ' item(s)</strong>. Edit fields above and click UPDATE to save changes.<br><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">' + itemLinks + '</div>';
+
+    var resultsArea = document.getElementById('resultsArea');
+    resultsArea.insertBefore(notice, resultsArea.firstChild);
+  }
+
+  /* ─── LOAD PO ITEM BY INDEX ─── */
+  function loadPOItem(index) {
+    if (!window._currentSupplierGroup) return;
+    var item = window._currentSupplierGroup.items[index];
+    if (!item) return;
+
+    loadDataToForm(item);
+
+    setVal('supplier', window._currentSupplierGroup.supplier);
+    setVal('supplierAddress', window._currentSupplierGroup.supplierAddress);
+    setVal('tin', window._currentSupplierGroup.tin);
+    setVal('modeProcurement', window._currentSupplierGroup.modeProcurement);
+    setVal('placeDelivery', window._currentSupplierGroup.placeDelivery);
+    setVal('dateDelivery', window._currentSupplierGroup.dateDelivery);
+
+    document.querySelectorAll('.item-nav-btn').forEach(function(btn, i) {
+      if (i === index) btn.classList.add('item-nav-active');
+      else btn.classList.remove('item-nav-active');
+    });
   }
 
   /* ─── RENDER DIAGNOSTIC INFO from server searchItem ─── */
@@ -2308,6 +2435,22 @@
       .searchItemByType(prNo, 'RFQ');
   }
 
+  function getItemsFromSearchResults(prNo) {
+    if (!searchResults) return null;
+    if (searchResults.suppliers) {
+      if (searchResults.prNo.trim().toLowerCase() === prNo.toLowerCase()) {
+        var allItems = [];
+        searchResults.suppliers.forEach(function(g) { allItems = allItems.concat(g.items); });
+        return allItems;
+      }
+      return null;
+    }
+    if (searchResults.length > 0 && searchResults[0].prNo.trim().toLowerCase() === prNo.toLowerCase()) {
+      return searchResults;
+    }
+    return null;
+  }
+
   function openPOFormView() {
     var prNo = (getVal('prNo') || document.getElementById('searchPR').value || '').trim();
     if (!prNo) { alert("Please enter or search a PR No. first."); return; }
@@ -2316,8 +2459,9 @@
     document.getElementById('prFormModal').classList.add('open');
 
     // Use locally cached search results if available (avoids stale server queries after update)
-    if (searchResults.length > 0 && searchResults[0].prNo.trim().toLowerCase() === prNo.toLowerCase()) {
-      renderGenericFormView(searchResults, 'PO', 'Purchase Order');
+    var cached = getItemsFromSearchResults(prNo);
+    if (cached) {
+      renderGenericFormView(cached, 'PO', 'Purchase Order');
       return;
     }
 
@@ -2778,6 +2922,28 @@
                 })
                 .withFailureHandler(function(err) { console.error("PR re-search failed:", err.message); })
                 .searchItem(prNo);
+            } else if (type === 'PO') {
+              google.script.run
+                .withSuccessHandler(function(results) {
+                  if (results && results.suppliers && results.suppliers.length) {
+                    searchResults = results;
+                    buildSupplierResultsTable(results, prNo);
+                    if (window._currentSupplierName) {
+                      for (var si = 0; si < results.suppliers.length; si++) {
+                        if (results.suppliers[si].supplier === window._currentSupplierName) {
+                          loadSupplierPO(results.suppliers[si]);
+                          break;
+                        }
+                      }
+                    }
+                  } else {
+                    document.getElementById('resultsArea').innerHTML = '<div class="auto-load-notice" style="color:#b71c1c;">No items found for PR No. ' + prNo + ' after update.</div>';
+                  }
+                })
+                .withFailureHandler(function(err) { console.error("Re-search failed:", err.message);
+                  document.getElementById('resultsArea').innerHTML = '<div class="auto-load-notice" style="color:#b71c1c;">Re-search failed: ' + err.message + '</div>';
+                })
+                .searchSuppliersByPR(prNo);
             } else {
                 google.script.run
                   .withSuccessHandler(function(results) {
@@ -2797,31 +2963,57 @@
               }
             }
 
-            if (prNo) {
-            if (type === 'AOQ') {
-              google.script.run
-                .withSuccessHandler(function(m) { doReSearch(); })
-                .withFailureHandler(function(e) { console.error("AOQ write failed:", e.message); doReSearch(); })
-                .writeToAOQSheetWithExistingData(prNo);
-            } else if (type === 'RFQ') {
-              google.script.run
-                .withSuccessHandler(function(m) { doReSearch(); })
-                .withFailureHandler(function(e) { console.error("RFQ write failed:", e.message); doReSearch(); })
-                .writeToRFQSheet(prNo);
-            } else if (type === 'PO') {
-              google.script.run
-                .withSuccessHandler(function(m) { doReSearch(); })
-                .withFailureHandler(function(e) { console.error("PO write failed:", e.message); doReSearch(); })
-                .writeToPOSheet(prNo);
-            } else if (type === 'PR') {
-              google.script.run
-                .withSuccessHandler(function(m) { doReSearch(); })
-                .withFailureHandler(function(e) { console.error("PR write failed:", e.message); doReSearch(); })
-                .writeToPRSheet(prNo);
-            } else {
-              doReSearch();
+            function proceedWithReSearch() {
+              if (prNo) {
+              if (type === 'AOQ') {
+                google.script.run
+                  .withSuccessHandler(function(m) { doReSearch(); })
+                  .withFailureHandler(function(e) { console.error("AOQ write failed:", e.message); doReSearch(); })
+                  .writeToAOQSheetWithExistingData(prNo);
+              } else if (type === 'RFQ') {
+                google.script.run
+                  .withSuccessHandler(function(m) { doReSearch(); })
+                  .withFailureHandler(function(e) { console.error("RFQ write failed:", e.message); doReSearch(); })
+                  .writeToRFQSheet(prNo);
+              } else if (type === 'PO') {
+                google.script.run
+                  .withSuccessHandler(function(m) { doReSearch(); })
+                  .withFailureHandler(function(e) { console.error("PO write failed:", e.message); doReSearch(); })
+                  .writeToPOSheet(prNo);
+              } else if (type === 'PR') {
+                google.script.run
+                  .withSuccessHandler(function(m) { doReSearch(); })
+                  .withFailureHandler(function(e) { console.error("PR write failed:", e.message); doReSearch(); })
+                  .writeToPRSheet(prNo);
+              } else {
+                doReSearch();
+              }
             }
-          }
+            }
+
+            if (type === 'PO' && window._currentSupplierName) {
+              var poFields = {
+                supplier: getVal('supplier'),
+                supplierAddress: getVal('supplierAddress'),
+                tin: getVal('tin'),
+                modeProcurement: getVal('modeProcurement'),
+                placeDelivery: getVal('placeDelivery'),
+                dateDelivery: getVal('dateDelivery')
+              };
+              google.script.run
+                .withSuccessHandler(function(syncMsg) {
+                  console.log("PO fields synced:", syncMsg);
+                  proceedWithReSearch();
+                })
+                .withFailureHandler(function(e) {
+                  console.error("PO sync failed:", e.message);
+                  proceedWithReSearch();
+                })
+                .updatePOFieldsForSupplier(prNo, window._currentSupplierName, poFields);
+            } else {
+              proceedWithReSearch();
+            }
+
           snapshotCurrentData();
         }
       })
