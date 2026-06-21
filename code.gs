@@ -1066,30 +1066,63 @@ function loadSupplierPricing(prNo) {
    from SUMMARY data — uses stored
    totalCost (col I) for accurate grand total.
 ================================= */
-function writeToPOSheet(prNo, selectedDescs) {
+function writeToPOSheet(prNo) {
   var ss           = SpreadsheetApp.getActiveSpreadsheet();
+  var aoqDataSheet = ss.getSheetByName("AOQ_SupplierData");
   var summarySheet = ss.getSheetByName("SUMMARY");
   var poSheet      = ss.getSheetByName("Purchase Order");
 
+  if (!aoqDataSheet) return "AOQ_SupplierData sheet not found.";
   if (!summarySheet) return "SUMMARY sheet not found.";
   if (!poSheet)      return "Purchase Order sheet not found.";
 
+  var aoqData = aoqDataSheet.getDataRange().getValues();
+  var nPrNo = cleanPrNo(prNo).toLowerCase();
+
+  // Build lookup of selected items from AOQ_SupplierData
+  var selectedPrices = {};
+  var supplierName = '';
+  var supplierAddress = '';
+  var supplierTin = '';
+
+  for (var i = 1; i < aoqData.length; i++) {
+    if (cleanPrNo(String(aoqData[i][0] || '')).toLowerCase() === nPrNo &&
+        String(aoqData[i][7] || '').toUpperCase() === 'TRUE') {
+      var desc = String(aoqData[i][4] || '').trim().toLowerCase();
+      if (desc) {
+        selectedPrices[desc] = {
+          unitCost:  Number(aoqData[i][5] || 0),
+          totalCost: Number(aoqData[i][6] || 0)
+        };
+      }
+      if (!supplierName) {
+        supplierName    = String(aoqData[i][1] || '').trim();
+        supplierAddress = String(aoqData[i][2] || '').trim();
+        supplierTin     = String(aoqData[i][3] || '').trim();
+      }
+    }
+  }
+
+  if (Object.keys(selectedPrices).length === 0) {
+    return "No selected items found for PR No.: " + prNo;
+  }
+
+  // Read item details from SUMMARY, using AOQ_SupplierData pricing
   var summaryData = summarySheet.getDataRange().getValues();
   var items = [];
-  var nPrNo = cleanPrNo(prNo).toLowerCase();
 
   for (var i = 1; i < summaryData.length; i++) {
     if (cleanPrNo(summaryData[i][1]).toLowerCase() === nPrNo) {
       var desc = String(summaryData[i][5] || '').trim().toLowerCase();
-      // Skip if not in the selected set (when selection data is provided)
-      if (selectedDescs && Object.keys(selectedDescs).length > 0 && !selectedDescs[desc]) continue;
+      if (!selectedPrices[desc]) continue;
+
       var rawDate  = summaryData[i][0];
       var dateObj  = (rawDate instanceof Date) ? rawDate : new Date(rawDate);
       var formatted = Utilities.formatDate(dateObj, Session.getScriptTimeZone(), "MM/dd/yyyy");
 
       var qty       = Number(summaryData[i][6] || 0);
-      var unitCost  = Number(summaryData[i][7] || 0);
-      var totalCost = Number(summaryData[i][8] || 0);
+      var unitCost  = selectedPrices[desc].unitCost;
+      var totalCost = selectedPrices[desc].totalCost;
       if (totalCost === 0 && qty > 0 && unitCost > 0) {
         totalCost = qty * unitCost;
       }
@@ -1108,9 +1141,9 @@ function writeToPOSheet(prNo, selectedDescs) {
         deliveryTerm:    summaryData[i][10],
         paymentTerm:     summaryData[i][11],
         deliveryPeriod:  summaryData[i][12],
-        supplier:        summaryData[i][13],
-        supplierAddress: summaryData[i][14],
-        tin:             summaryData[i][15],
+        supplier:        supplierName,
+        supplierAddress: supplierAddress,
+        tin:             supplierTin,
         modeProcurement: summaryData[i][16],
         placeDelivery:   summaryData[i][17],
         dateDelivery:    summaryData[i][18]
@@ -1215,28 +1248,15 @@ function saveSupplierData(supplierRows) {
     return "No matching items found in SUMMARY sheet for PR No. " + prNo + ". Make sure RFQ items are saved first.";
   }
 
-  // Build set of selected item descriptions for PO filtering
-  var selectedDescs = {};
-  for (var i = 0; i < supplierRows.length; i++) {
-    if (supplierRows[i].selected !== false) {
-      var d = String(supplierRows[i].itemDescription || '').trim().toLowerCase();
-      if (d) selectedDescs[d] = true;
-    }
-  }
-
-  // After updating SUMMARY, push to per-supplier PO copy and PO sheets
-  // Only selected items go into the PO sheets
-  var poNo = ''; // Will be set by createSupplierPOSheet if we have a supplier name
+  // After updating SUMMARY, generate PO number for tracking and write to PO sheet
+  var poNo = '';
   var supplierName = String(supplierRows[0].supplier || '').trim();
   if (supplierName) {
     poNo = getNextUniquePONo(prNo);
-    try { createSupplierPOSheet(prNo, supplierName, selectedDescs, poNo); } catch(e) { Logger.log("createSupplierPOSheet error: " + e); }
-  } else {
-    try { createSupplierPOSheet(prNo, null, selectedDescs); } catch(e) { Logger.log("createSupplierPOSheet error: " + e); }
   }
-  try { writeToPOSheet(prNo, selectedDescs); } catch(e) { Logger.log("writeToPOSheet error: " + e); }
+  try { writeToPOSheet(prNo); } catch(e) { Logger.log("writeToPOSheet error: " + e); }
 
-  return JSON.stringify({ message: updatedCount + " supplier item(s) saved Successfully! PO sheets updated.", poNo: poNo });
+  return JSON.stringify({ message: updatedCount + " supplier item(s) saved Successfully! PO sheet updated.", poNo: poNo });
 }
 
 /**
@@ -1469,127 +1489,8 @@ function createSupplierRFQSheet(prNo, supplierName) {
   return "Supplier RFQ sheet created: \"" + sheetName + "\"";
 }
 
-/* =================================
-   CREATE SUPPLIER PO SHEET
-   Copies the "Purchase Order" template
-   and populates it with supplier data
-   from SUMMARY for the given PR.
-   Sheet name: "PO - {supplierName}"
-   Leaves the original Purchase Order tab
-   untouched (template only).
-================================= */
-function createSupplierPOSheet(prNo, supplierName, selectedDescs, poNo) {
-  var ss           = SpreadsheetApp.getActiveSpreadsheet();
-  var summarySheet = ss.getSheetByName("SUMMARY");
-  var poTemplate   = ss.getSheetByName("Purchase Order");
 
-  if (!summarySheet) return "SUMMARY sheet not found.";
-  if (!poTemplate)   return "Purchase Order template sheet not found.";
 
-  var summaryData = summarySheet.getDataRange().getValues();
-  var items = [];
-  var nPrNo = cleanPrNo(prNo).toLowerCase();
-
-  for (var i = 1; i < summaryData.length; i++) {
-    if (cleanPrNo(summaryData[i][1]).toLowerCase() === nPrNo) {
-      var desc = String(summaryData[i][5] || '').trim().toLowerCase();
-      // Skip if not in the selected set (when selection data is provided)
-      if (selectedDescs && Object.keys(selectedDescs).length > 0 && !selectedDescs[desc]) continue;
-      var rawDate  = summaryData[i][0];
-      var dateObj  = (rawDate instanceof Date) ? rawDate : new Date(rawDate);
-      var formatted = Utilities.formatDate(dateObj, Session.getScriptTimeZone(), "MM/dd/yyyy");
-
-      var qty       = Number(summaryData[i][6] || 0);
-      var unitCost  = Number(summaryData[i][7] || 0);
-      var totalCost = Number(summaryData[i][8] || 0);
-      if (totalCost === 0 && qty > 0 && unitCost > 0) {
-        totalCost = qty * unitCost;
-      }
-
-      items.push({
-        date:            formatted,
-        prNo:            cleanPrNo(summaryData[i][1]),
-        fundCluster:     summaryData[i][2],
-        office:          summaryData[i][3],
-        unit:            summaryData[i][4],
-        itemDescription: summaryData[i][5],
-        quantity:        qty,
-        unitCost:        unitCost,
-        totalCost:       totalCost,
-        purpose:         summaryData[i][9],
-        deliveryTerm:    summaryData[i][10],
-        paymentTerm:     summaryData[i][11],
-        deliveryPeriod:  summaryData[i][12],
-        supplier:        summaryData[i][13],
-        supplierAddress: summaryData[i][14],
-        tin:             summaryData[i][15],
-        modeProcurement: summaryData[i][16],
-        placeDelivery:   summaryData[i][17],
-        dateDelivery:    summaryData[i][18]
-      });
-    }
-  }
-
-  if (items.length === 0) return "No items found for PR No.: " + prNo;
-
-  var first = items[0];
-  var rawName = String(supplierName || first.supplier || 'Unknown').trim();
-  var baseName = rawName.replace(/[\[\]:\?\*\/\\]/g, '').substring(0, 95);
-  if (!baseName) baseName = 'Unknown';
-  var sheetName = 'PO - ' + baseName;
-
-  var existing = ss.getSheetByName(sheetName);
-  var counter = 1;
-  while (existing) {
-    counter++;
-    sheetName = 'PO - ' + baseName + ' (' + counter + ')';
-    existing = ss.getSheetByName(sheetName);
-  }
-
-  var poSheet = poTemplate.copyTo(ss);
-  poSheet.setName(sheetName);
-
-  var DATA_START_ROW = 19;
-  var MAX_ITEM_ROWS  = 26;
-
-  poSheet.getRange(DATA_START_ROW, 1, MAX_ITEM_ROWS, 7).clearContent();
-
-  poSheet.getRange("A10").setValue("Supplier: " + (supplierName || first.supplier || ""));
-  poSheet.getRange("A11").setValue("Address: " + (first.supplierAddress || ""));
-  poSheet.getRange("A12").setValue("Tin: " + (first.tin || ""));
-
-  if (poNo) poSheet.getRange("E9").setValue("PO No.: " + poNo);
-  poSheet.getRange("E11").setValue("Date: " + first.date);
-  poSheet.getRange("E12").setValue("Mode of Procurement: " + (first.modeProcurement || ""));
-
-  poSheet.getRange("A16").setValue("Place of Delivery: " + (first.placeDelivery || ""));
-  if (first.dateDelivery) {
-    var dd = (first.dateDelivery instanceof Date) ? first.dateDelivery : new Date(first.dateDelivery);
-    poSheet.getRange("A17").setValue(Utilities.formatDate(dd, Session.getScriptTimeZone(), "MM/dd/yyyy"));
-  }
-
-  poSheet.getRange("E16").setValue("Delivery Term: " + (first.deliveryTerm || ""));
-  poSheet.getRange("E17").setValue("Payment Term: " + (first.paymentTerm || ""));
-
-  var rows = items.map(function(item) {
-    return [
-      "",                   // A: Stock/Property No.
-      item.unit,            // B: Unit
-      item.itemDescription, // C: Item Description (merged C:D)
-      "",                   // D: blank (merged with C)
-      item.quantity,        // E: Quantity
-      item.unitCost,        // F: Unit Cost
-      item.totalCost        // G: Amount
-    ];
-  });
-
-  poSheet.getRange(DATA_START_ROW, 1, rows.length, 7).setValues(rows);
-
-  var lastDataRow = DATA_START_ROW + items.length - 1;
-  poSheet.getRange(45, 7).setFormula("=SUM(G" + DATA_START_ROW + ":G" + lastDataRow + ")");
-
-  return "Supplier PO sheet created: \"" + sheetName + "\"";
-}
 
 
 function writeToPRSheet(prNo) {
