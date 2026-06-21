@@ -1,0 +1,3581 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      background: #f4f6f9;
+      padding: 40px;
+      margin: 0;
+    }
+
+    .app-title {
+      text-align: center;
+      font-size: 52px;
+      font-weight: bold;
+      color: #0b5394;
+      margin-bottom: 10px;
+    }
+    .app-sub {
+      text-align: center;
+      font-size: 38px;
+      color: #666;
+      margin-bottom: 36px;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── TYPE SELECTOR ── */
+    .type-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 18px;
+      max-width: 1400px;
+      margin: 0 auto 36px;
+    }
+    .type-card {
+      background: #fff;
+      border: 3px solid #c5d5e8;
+      border-radius: 14px;
+      padding: 30px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .type-card:hover {
+      transform: translateY(-5px);
+      border-color: #1565c0;
+      background: #eef5ff;
+      box-shadow: 0 8px 24px rgba(21,101,192,0.25);
+    }
+    .type-card .tc-icon { font-size: 60px; margin-bottom: 14px; display: block; }
+    .type-card .tc-label { font-size: 32px; font-weight: bold; color: #0b3d6b; }
+    .type-card .tc-desc  { font-size: 16px; color: #666; margin-top: 6px; }
+
+    .po-sub-wrap {
+      max-width: 1800px;
+      margin: 0 auto;
+      display: none;
+      border-top: 4px dashed #c5d5e8;
+      padding-top: 28px;
+    }
+    .po-sub-wrap.visible { display: block; }
+    .po-sub-title {
+      text-align: center;
+      font-size: 32px;
+      font-weight: bold;
+      color: #0b5394;
+      margin-bottom: 16px;
+    }
+    .po-sub-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+    .sub-card {
+      background: #fff;
+      border: 2px solid #d5dce5;
+      border-radius: 12px;
+      padding: 45px 50px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .sub-card:hover {
+      transform: translateY(-4px);
+      border-color: #e8a317;
+      background: #fffaf0;
+      box-shadow: 0 8px 20px rgba(232,163,23,0.22);
+    }
+    .sub-card .sc-icon  { font-size: 50px; margin-bottom: 14px; }
+    .sub-card .sc-label { font-size: 30px; font-weight: bold; color: #0b3d6b; }
+
+    /* ── FORM SCREEN ── */
+    .form-topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .back-btn {
+      background: #0b5394;
+      color: #fff;
+      border: none;
+      padding: 13px 22px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 22px;
+    }
+    .back-btn:hover { background: #073763; }
+    .form-label-badge {
+      background: #0b5394;
+      color: #fff;
+      padding: 13px 22px;
+      border-radius: 20px;
+      font-size: 22px;
+      font-weight: bold;
+    }
+    .form-label-badge.po  { background: #c77b00; }
+    .form-label-badge.aoq { background: #6a1b9a; }
+    .form-label-badge.rfq { background: #00695c; }
+    .form-screen-title { font-size: 32px; font-weight: bold; color: #0b3d6b; }
+
+    .po-type-banner {
+      background: #0b3d6b;
+      color: #fff;
+      border-radius: 8px;
+      padding: 18px 28px;
+      font-size: 30px;
+      font-weight: bold;
+      margin-bottom: 18px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+    .po-type-banner.visible { display: flex; }
+    .po-type-banner button {
+      margin-left: auto;
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      border: none;
+      padding: 12px 22px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 22px;
+    }
+
+    /* ── AUTO-GENERATED PR NO NOTICE ── */
+    .pr-auto-notice {
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+      border-radius: 6px;
+      padding: 12px 18px;
+      font-size: 18px;
+      color: #2e7d32;
+      margin-top: 6px;
+      display: none;
+    }
+
+    .search-box {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .search-box input {
+      width: 380px;
+      padding: 18px 24px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 22px;
+    }
+    .search-box button {
+      background: #0b5394;
+      color: #fff;
+      border: none;
+      padding: 18px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 22px;
+      margin-left: 8px;
+    }
+    .search-box button:hover { background: #073763; }
+
+    .grid   { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 24px; }
+
+    .card {
+      background: #fff;
+      padding: 28px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .section {
+      font-size: 26px;
+      font-weight: bold;
+      color: #0b5394;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e8a317;
+    }
+    .procurement-section {
+      margin-top: 22px;
+      padding-top: 14px;
+      border-top: 1px solid #d9d9d9;
+      font-size: 18px;
+      font-weight: bold;
+      color: #0b5394;
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      margin-top: 13px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 10px 13px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+    }
+    textarea { height: 72px; resize: vertical; }
+    ::placeholder { color: #aaa; font-style: italic; font-size: 15px; }
+
+    /* ── TOTAL COST DISPLAY ── */
+    .total-cost-display {
+      margin-top: 13px;
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+      border-radius: 6px;
+      padding: 11px 16px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #2e7d32;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .total-cost-display span { font-size: 20px; }
+
+    /* ── ACTION BUTTONS ── */
+    .btn-area { text-align: center; margin-top: 22px; }
+    button.action {
+      background: #0b5394;
+      color: #fff;
+      border: none;
+      padding: 14px 30px;
+      font-size: 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button.action:hover   { background: #073763; }
+    button.action.danger  { background: #b71c1c; }
+    button.action.danger:hover  { background: #7f0000; }
+    button.action.success { background: #2e7d32; }
+    button.action.success:hover { background: #1b5e20; }
+    button.action.neutral { background: #546e7a; }
+    button.action.neutral:hover { background: #263238; }
+    button.action.orange  { background: #e65100; }
+    button.action.orange:hover  { background: #bf360c; }
+    button.action:disabled { background: #b0bec5; cursor: not-allowed; opacity: 0.7; }
+
+    /* ── ITEMS TABLE ── */
+    .items-area {
+      margin-top: 28px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 22px;
+    }
+    .items-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .items-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #0b5394;
+    }
+    .items-count {
+      background: #0b5394;
+      color: #fff;
+      border-radius: 20px;
+      padding: 3px 16px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 16px;
+    }
+    .items-table th {
+      background: #0b5394;
+      color: #fff;
+      padding: 12px 14px;
+      text-align: left;
+    }
+    .items-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid #ecf0f6;
+      vertical-align: middle;
+    }
+    .items-table tr:last-child td { border-bottom: none; }
+    .items-table tr:hover td { background: #f5f9ff; }
+    .items-table tr.selected-row td { background: #fff8e1 !important; }
+    .items-table td.total-cost { font-weight: bold; color: #2e7d32; }
+    .items-grand {
+      text-align: right;
+      font-weight: bold;
+      font-size: 18px;
+      color: #0b3d6b;
+      margin-top: 13px;
+      padding-top: 10px;
+      border-top: 2px solid #c5d5e8;
+    }
+    .save-all-btn {
+      background: #2e7d32;
+      color: #fff;
+      border: none;
+      padding: 13px 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 18px;
+    }
+    .save-all-btn:hover { background: #1b5e20; }
+    .empty-items {
+      text-align: center;
+      color: #aaa;
+      font-style: italic;
+      padding: 20px 0;
+      font-size: 16px;
+    }
+    .item-action-btn {
+      border: none;
+      padding: 6px 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 15px;
+      margin: 2px;
+    }
+    .item-action-btn.remove { background: #c62828; color: #fff; }
+    .item-action-btn.remove:hover { background: #8d0000; }
+    .item-action-btn.select-item { background: #1565c0; color: #fff; }
+    .item-action-btn.select-item:hover { background: #0b5394; }
+
+    /* ── RESULTS TABLE ── */
+    #resultsArea { margin-top: 24px; }
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .results-table th {
+      background: #0b5394;
+      color: #fff;
+      padding: 13px 16px;
+      text-align: left;
+      font-size: 16px;
+    }
+    .results-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f4fa;
+      font-size: 16px;
+    }
+    .results-table tr:last-child td { border-bottom: none; }
+    .results-table tr:hover td { background: #f0f4fa; }
+    .results-table tr.selected-row td { background: #fff8e1 !important; border-left: 3px solid #e8a317; }
+
+    .select-btn {
+      background: #1565c0;
+      color: #fff;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+    }
+    .select-btn:hover { background: #0b5394; }
+
+    /* ── SUPPLIER SCREEN ── */
+    .supplier-screen-wrap {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 26px;
+      margin-top: 10px;
+    }
+    .supplier-topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .supplier-pr-info {
+      background: #e3f2fd;
+      border: 1px solid #90caf9;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 16px;
+      color: #0b3d6b;
+      font-weight: bold;
+      flex: 1;
+    }
+    .supplier-count-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .supplier-count-bar label { font-size: 16px; font-weight: bold; color: #0b3d6b; margin: 0; }
+    .supplier-count-bar select {
+      width: auto;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+    }
+    .supplier-table-wrap {
+      overflow-x: auto;
+      margin-top: 4px;
+    }
+    .supplier-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+      min-width: 900px;
+    }
+    .supplier-table th {
+      background: #0b5394;
+      color: #fff;
+      padding: 11px 13px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .supplier-table th.sup-col { background: #1565c0; }
+    .supplier-table td {
+      padding: 9px 11px;
+      border-bottom: 1px solid #e8eef6;
+      vertical-align: middle;
+    }
+    .supplier-table tr:hover td { background: #f5f9ff; }
+    .supplier-table td.item-desc { font-weight: bold; color: #0b3d6b; max-width: 220px; }
+    .supplier-table td.item-qty  { text-align: center; color: #555; }
+    .supplier-table td.sup-price input {
+      width: 110px;
+      padding: 7px 10px;
+      border: 1px solid #b0c4de;
+      border-radius: 5px;
+      font-size: 14px;
+      text-align: right;
+    }
+    .supplier-table td.sup-price input:focus { border-color: #1565c0; outline: none; }
+    .supplier-table td.sup-chk { text-align:center; vertical-align:middle; min-width:32px; }
+    .supplier-table td.sup-chk input.item-chk { width:16px; height:16px; cursor:pointer; margin:0; }
+    .supplier-table td.sup-total { text-align: right; font-weight: bold; color: #2e7d32; white-space: nowrap; }
+    .supplier-table td.sup-best  { background: #e8f5e9 !important; }
+    .supplier-row-grand {
+      text-align: right;
+      font-weight: bold;
+      font-size: 16px;
+      color: #0b3d6b;
+      padding: 10px 13px;
+      background: #f0f4fa;
+      border-top: 2px solid #c5d5e8;
+    }
+    .supplier-grand-row td {
+      background: #f0f4fa;
+      font-weight: bold;
+      font-size: 15px;
+      color: #0b3d6b;
+      border-top: 2px solid #c5d5e8;
+      text-align: right;
+      padding: 10px 13px;
+    }
+    .supplier-grand-row td.grand-label { text-align: left; color: #0b3d6b; }
+    .best-badge {
+      display: inline-block;
+      background: #2e7d32;
+      color: #fff;
+      border-radius: 10px;
+      padding: 2px 8px;
+      font-size: 11px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+
+    /* ── SHEET VIEWER MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 9000;
+      align-items: center;
+      justify-content: center;
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.28);
+      width: 95vw;
+      max-width: 1500px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header {
+      background: #0b3d6b;
+      color: #fff;
+      padding: 18px 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 14px 14px 0 0;
+    }
+    .modal-header h2 { margin: 0; font-size: 22px; }
+    .modal-close {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.35); }
+    .modal-body { padding: 26px; overflow-y: auto; flex: 1; }
+
+    /* ── PR PRINT VIEW ── */
+    .pr-form-view {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      color: #111;
+    }
+    .pr-agency-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .pr-agency-header .agency-name { font-size: 22px; font-weight: bold; }
+    .pr-agency-header .bureau-name { font-size: 26px; font-weight: bold; }
+    .pr-agency-header .bureau-sub  { font-size: 16px; }
+    .pr-meta-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    .pr-meta-row span { flex: 1; }
+    .pr-title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      margin: 18px 0 10px;
+      text-decoration: underline;
+      text-transform: uppercase;
+    }
+    .pr-info-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 13px;
+      font-size: 16px;
+    }
+    .pr-info-bar-labeled {
+      display: flex;
+      justify-content: space-between;
+      align-items: stretch;
+      border: 1.5px solid #aac4e8;
+      border-radius: 5px;
+      margin-bottom: 16px;
+      font-size: 16px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .pr-info-bar-labeled .pr-lbl-cell {
+      flex: 1;
+      padding: 10px 18px;
+      border-right: 1.5px solid #aac4e8;
+    }
+    .pr-info-bar-labeled .pr-lbl-cell:last-child { border-right: none; }
+    .pr-info-bar-labeled .lbl { font-weight: bold; color: #0b3d6b; }
+    .pr-info-bar-labeled .val { margin-left: 4px; }
+    .pr-items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+    .pr-items-table th {
+      background: #d9e8fb;
+      border: 1px solid #aac4e8;
+      padding: 10px 13px;
+      text-align: center;
+    }
+    .pr-items-table td {
+      border: 1px solid #c8d8ea;
+      padding: 8px 13px;
+      text-align: right;
+    }
+    .pr-items-table td.desc { text-align: left; }
+    .pr-items-table td.center { text-align: center; }
+    .pr-items-table tr:nth-child(even) td { background: #f7faff; }
+    .pr-grand-total {
+      text-align: right;
+      font-weight: bold;
+      font-size: 18px;
+      margin: 10px 5px;
+    }
+    .pr-purpose-box {
+      border: 1px solid #aac4e8;
+      border-radius: 6px;
+      padding: 13px 18px;
+      font-size: 16px;
+      margin-bottom: 18px;
+      background: #f7faff;
+    }
+    .pr-sig-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 26px;
+      gap: 26px;
+    }
+    .pr-sig-block {
+      flex: 1;
+      border-top: 2px solid #0b5394;
+      padding-top: 13px;
+    }
+    .pr-sig-block .sig-label { font-weight: bold; font-size: 16px; color: #0b3d6b; }
+    .pr-sig-block .sig-name  { font-size: 18px; font-weight: bold; margin-top: 5px; }
+
+    .auto-load-notice {
+      background: #e3f2fd;
+      color: #1565c0;
+      border-radius: 8px;
+      padding: 13px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    /* ── DUPLICATE WARNING ── */
+    .dup-warning {
+      background: #fff3e0;
+      border: 1px solid #ffb300;
+      border-radius: 6px;
+      padding: 10px 18px;
+      font-size: 16px;
+      color: #e65100;
+      font-weight: bold;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* ── OTHER FORMS GRID (auto-fit) ── */
+    .other-forms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .other-card {
+      background: #fff;
+      border: 2px solid #d5dce5;
+      border-radius: 12px;
+      padding: 22px 14px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .other-card:hover {
+      border-color: #1565c0;
+      background: #f0f6ff;
+      box-shadow: 0 6px 18px rgba(21,101,192,0.18);
+      transform: translateY(-3px);
+    }
+    .oc-icon  { font-size: 36px; line-height: 1; }
+    .oc-label { font-size: 14px; font-weight: bold; color: #0b3d6b; line-height: 1.3; }
+  </style>
+</head>
+<body>
+
+<input type="hidden" id="row">
+<input type="hidden" id="currentFormType">
+<input type="hidden" id="currentPoType">
+<input type="hidden" id="originalDataSnapshot">
+<input type="hidden" id="originalItemDescription">
+
+<div class="app-title">PROCUREMENT DOCUMENT MANAGEMENT</div>
+<br></br>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 1 — SELECT FORM TYPE
+══════════════════════════════════════════ -->
+<div class="screen active" id="screenSelector">
+
+  <div class="type-grid">
+    <div class="type-card" onclick="selectFormType('PR')">
+      <div class="tc-icon">📋</div>
+      <div class="tc-label">Purchase Request</div>
+    </div>
+    <div class="type-card" onclick="selectFormType('RFQ')">
+      <div class="tc-icon">📨</div>
+      <div class="tc-label">RFQ</div>
+      <div class="tc-desc">Request for Quotation</div>
+    </div>
+    <div class="type-card" onclick="selectFormType('AOQ')">
+      <div class="tc-icon">📊</div>
+      <div class="tc-label">AOQ</div>
+      <div class="tc-desc">Abstract of Quotations</div>
+    </div>
+    <div class="type-card" onclick="selectFormType('PO')">
+      <div class="tc-icon">🛒</div>
+      <div class="tc-label">Purchase Order</div>
+    </div>
+     <div class="type-card" onclick="selectFormType('OTHER')">
+      <div class="tc-icon">📁</div>
+      <div class="tc-label">Other Forms</div>
+      <div class="tc-desc">Miscellaneous Documents</div>
+    </div>
+  </div>
+
+  <div class="po-sub-wrap" id="poSubPanel">
+    <div class="po-sub-title">📋 Select Purchase Request Type</div>
+    <div class="po-sub-grid">
+      <div class="sub-card" onclick="selectPoType('Office Supplies')">
+        <div class="sc-icon">🏢</div>
+        <div class="sc-label">Office Supplies</div>
+      </div>
+      <div class="sub-card" onclick="selectPoType('Equipment')">
+        <div class="sc-icon">⚙️</div>
+        <div class="sc-label">Equipment</div>
+      </div>
+      <div class="sub-card" onclick="selectPoType('Fuel &amp; Lubricants')">
+        <div class="sc-icon">⛽</div>
+        <div class="sc-label">Fuel &amp; Lubricants</div>
+      </div>
+      <div class="sub-card" onclick="selectPoType('IT &amp; Technology')">
+        <div class="sc-icon">💻</div>
+        <div class="sc-label">IT &amp; Technology</div>
+      </div>
+      <div class="sub-card" onclick="selectPoType('Maintenance &amp; Repair')">
+        <div class="sc-icon">🛠️</div>
+        <div class="sc-label">Maintenance &amp; Repair</div>
+      </div>
+      <div class="sub-card" onclick="selectPoType('General Goods &amp; Services')">
+        <div class="sc-icon">📦</div>
+        <div class="sc-label">General Goods &amp; Services</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Other Forms Sub-Panel -->
+  <div class="po-sub-wrap" id="otherSubPanel">
+    <div class="po-sub-title">📁 Select Other Form Type</div>
+    <div id="otherFormsGrid" class="other-forms-grid">
+      <div class="other-card" onclick="openOtherForm('Disbursement Voucher')">
+        <div class="oc-icon">💰</div>
+        <div class="oc-label">Disbursement Voucher</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Inspection and Acceptance Form')">
+        <div class="oc-icon">📝</div>
+        <div class="oc-label">Inspection and Acceptance Form</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Requisition and Issuance Report')">
+        <div class="oc-icon">📋</div>
+        <div class="oc-label">Requisition and Issuance Report</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Inventory Custodian Slip')">
+        <div class="oc-icon">🗂️</div>
+        <div class="oc-label">Inventory Custodian Slip</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Property Acknowledgement Report')">
+        <div class="oc-icon">🗂️</div>
+        <div class="oc-label">Property Acknowledgement Report</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Report of Supplies and Materials Issued')">
+        <div class="oc-icon">📦</div>
+        <div class="oc-label">Report of Supplies and Materials Issued</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Market Scoping')">
+        <div class="oc-icon">🔎</div>
+        <div class="oc-label">Market Scoping</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Technical Specs')">
+        <div class="oc-icon">⚙️</div>
+        <div class="oc-label">Technical Specs</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Reso-to-Award')">
+        <div class="oc-icon">🏆</div>
+        <div class="oc-label">Reso-to-Award</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Notice of Award')">
+        <div class="oc-icon">📢</div>
+        <div class="oc-label">Notice of Award</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Notice to Proceed')">
+        <div class="oc-icon">🚀</div>
+        <div class="oc-label">Notice to Proceed</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Obligation Request Status')">
+        <div class="oc-icon">📄</div>
+        <div class="oc-label">Obligation Request Status</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Recommending Approval of Extension')">
+        <div class="oc-icon">✅</div>
+        <div class="oc-label">Recommending Approval of Extension</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Pre-Inspection Report')">
+        <div class="oc-icon">🔍</div>
+        <div class="oc-label">Pre-Inspection Report</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Post-Inspection Report')">
+        <div class="oc-icon">🔎</div>
+        <div class="oc-label">Post-Inspection Report</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Waste Material Report')">
+        <div class="oc-icon">🗑️</div>
+        <div class="oc-label">Waste Material Report</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screenSelector -->
+
+
+<!-- ══════════════════════════════════════════
+     SCREEN 2 — ENTRY FORM
+══════════════════════════════════════════ -->
+<div class="screen" id="screenForm">
+
+  <div class="form-topbar">
+    <button class="back-btn" onclick="goBack()">&#8592; Back</button>
+    <span class="form-label-badge" id="formBadge">PR</span>
+    <span class="form-screen-title" id="formScreenTitle"></span>
+  </div>
+
+  <div class="po-type-banner" id="poTypeBanner">
+    <span id="poTypeBannerText"></span>
+    <button onclick="goBack()">Change Type</button>
+  </div>
+
+  <div class="search-box">
+    <input type="text" id="searchPR" placeholder="Enter PR No. to Search">
+    <button onclick="searchItem()">🔍 SEARCH</button>
+  </div>
+
+  <div id="resultsArea"></div>
+
+  <!-- ── PR FORM ── -->
+  <div id="formPR" style="display:none;">
+    <div class="grid-2">
+      <div class="card">
+        <div class="section">PURCHASE REQUEST</div>
+
+        <label>Date *</label>
+        <input type="date" id="pr_date">
+
+        <label>Office *</label>
+        <select id="pr_office" onchange="onOfficeChange()">
+          <option value="">-- Select Office --</option>
+          <option>Regional Office</option>
+          <option>Albay Provincial Office</option>
+          <option>Camarines Norte Provincial Office</option>
+          <option>Camarines Sur Provincial Office</option>
+          <option>Catanduanes Provincial Office</option>
+          <option>Masbate Provincial Office</option>
+          <option>Sorsogon Provincial Office</option>
+          <option>Administrative</option>
+        </select>
+
+        <label>PR No. *</label>
+        <input type="text" id="pr_prNo" placeholder="Select Office first" readonly oninput="checkDuplicate()">
+        <!-- FIX: auto-sequence notice -->
+        <div class="pr-auto-notice" id="pr_autoNotice">Auto-generated after selecting Office.</div>
+        <!-- FIX: duplicate warning -->
+        <div class="dup-warning" id="pr_dupWarning">⚠️ An item with the same description already exists under this PR No.</div>
+
+        <label>Fund Cluster</label>
+        <select id="pr_fundCluster">
+        <option value="">-- Select Fund Cluster --</option>
+          <option>01-101101</option>
+          <option>01-101102</option>
+        </select>
+
+        <div class="procurement-section">Procurement Item</div>
+
+        <label>Unit</label>
+        <select id="pr_unit" onchange="toggleOtherUnit('pr_unit','pr_otherUnit')">
+          <option value="">-- Select Unit --</option>
+          <option>Pieces</option><option>Lot</option><option>Pack</option>
+          <option>Dozen</option><option>Gallon</option><option>Kg</option>
+          <option>Liter</option><option>Case</option><option>Ream</option>
+          <option>Roll</option><option>Others</option>
+        </select>
+        <input type="text" id="pr_otherUnit" placeholder="Specify Unit" style="display:none;margin-top:6px;">
+      </div>
+
+      <div class="card">
+        <div class="section">ITEM DETAILS</div>
+
+        <label>Item Description *</label>
+        <textarea id="pr_itemDescription" placeholder="e.g Books" oninput="checkDuplicate()"></textarea>
+
+        <label>Quantity *</label>
+        <input type="number" id="pr_quantity" placeholder="Enter quantity" min="0"
+               oninput="updateTotalCostDisplay('pr')">
+
+        <label>Unit Cost *</label>
+        <input type="number" id="pr_unitCost" placeholder="Enter unit cost" min="0" step="0.01"
+               oninput="updateTotalCostDisplay('pr')">
+
+        <div class="total-cost-display" id="pr_totalCostDisplay">
+          <span>Total Cost:</span>
+          <span id="pr_totalCostValue">₱0.00</span>
+        </div>
+
+        <label>Purpose</label>
+        <select id="pr_purpose" onchange="toggleOtherPurpose('pr_purpose','pr_otherPurpose')">
+        <option value="">-- Select Purpose --</option>
+          <option>Procurement of supplies and delivery of office materials.</option><option>Procurement of Office Supplies and Delivery of Goods</option><option>Procurement of Various Supplies and Materials</option>
+          <option>Procurement of Supplies and Delivery of Equipment</option><option>Others</option>
+        </select>
+        <input type="text" id="pr_otherPurpose" placeholder="Specify Purpose" style="display:none;margin-top:6px;">
+      </div>
+    </div>
+
+    <!-- FIX: Unified items table — no staging area, just the live table -->
+    <div class="items-area" id="prItemsArea">
+      <div class="items-header">
+        <span class="items-title">🧾 PR Items</span>
+        <span class="items-count" id="prItemsCount">0 items</span>
+      </div>
+      <table class="items-table" id="prItemsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Unit</th>
+            <th>Item Description</th>
+            <th>Qty</th>
+            <th>Unit Cost (₱)</th>
+            <th>Total Cost (₱)</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="prItemsBody">
+          <tr id="prEmptyRow"><td colspan="7" class="empty-items">No items yet. Fill the form and click "+ ADD ITEM".</td></tr>
+        </tbody>
+      </table>
+      <!-- FIX: Grand total computed from all items -->
+      <div class="items-grand" id="prGrandTotal">Grand Total: ₱0.00</div>
+      <div style="text-align:center;">
+        <button class="save-all-btn" id="prSaveAllBtn" onclick="saveAllItems()" style="display:none;">💾 SAVE ALL TO SHEET</button>
+      </div>
+    </div>
+
+    <!-- ADD ITEM button (only visible for new PR, hides when editing from search) -->
+    <div class="btn-area">
+      <button class="action orange" id="pr_addBtn" onclick="addItem()">+ ADD ITEM</button>
+      <!-- FIX: VIEW FORM now opens only the PR form view -->
+      <button class="action" onclick="openPRFormView()">📋 VIEW PR FORM</button>
+      <button class="action success" id="pr_updateBtn" onclick="updateItem()">UPDATE</button>
+      <button class="action danger"  id="pr_deleteBtn" onclick="deleteItem()">DELETE</button>
+      <button class="action neutral" onclick="clearForm()">CLEAR</button>
+    </div>
+  </div><!-- /formPR -->
+
+
+  <!-- ── AOQ FORM ── -->
+  <div id="formAOQ" style="display:none;">
+    <div class="grid">
+      <div class="card">
+        <div class="section">PR REFERENCE</div>
+        <label>Date *</label>
+        <input type="date" id="aoq_date">
+        <label>Office *</label>
+        <select id="aoq_office">
+          <option value="">-- Select Office --</option>
+          <option>Regional Office</option>
+          <option>Albay Provincial Office</option>
+          <option>Camarines Norte Provincial Office</option>
+          <option>Camarines Sur Provincial Office</option>
+          <option>Catanduanes Provincial Office</option>
+          <option>Masbate Provincial Office</option>
+          <option>Sorsogon Provincial Office</option>
+        </select>
+        <label>PR No. *</label>
+        <input type="text" id="aoq_prNo" placeholder="Enter Purchase Request Number">
+        <label>Fund Cluster</label>
+        <input type="text" id="aoq_fundCluster" placeholder="Enter Fund Cluster">
+        <label>Unit</label>
+        <select id="aoq_unit" onchange="toggleOtherUnit('aoq_unit','aoq_otherUnit')">
+          <option value="">-- Select Unit --</option>
+          <option>Pieces</option><option>Lot</option><option>Pack</option>
+          <option>Dozen</option><option>Gallon</option><option>Kg</option>
+          <option>Liter</option><option>Case</option><option>Others</option>
+        </select>
+        <input type="text" id="aoq_otherUnit" placeholder="Specify Unit" style="display:none;margin-top:6px;">
+      </div>
+      <div class="card">
+        <div class="section">ITEM DETAILS</div>
+        <label>Item Description *</label>
+        <textarea id="aoq_itemDescription" placeholder="Enter complete description"></textarea>
+        <label>Quantity *</label>
+        <input type="number" id="aoq_quantity" placeholder="Enter quantity" oninput="updateTotalCostDisplay('aoq')">
+        <label>Unit Cost *</label>
+        <input type="number" id="aoq_unitCost" placeholder="Enter unit cost" oninput="updateTotalCostDisplay('aoq')">
+        <div class="total-cost-display" id="aoq_totalCostDisplay">
+          <span>Total Cost:</span>
+          <span id="aoq_totalCostValue">₱0.00</span>
+        </div>
+        <label>Purpose / Title</label>
+        <textarea id="aoq_purpose" placeholder="State the purpose or justification"></textarea>
+      </div>
+      <div class="card">
+        <div class="section">AOQ TERMS</div>
+        <label>Delivery Term</label>
+        <select id="aoq_deliveryTerm" onchange="toggleOtherDeliveryTerm('aoq_deliveryTerm','aoq_otherDeliveryTerm')">
+          <option value="">-- Select Delivery Term --</option>
+          <option>Within 30 days</option><option>FOB Destination</option><option>Others</option>
+        </select>
+        <input type="text" id="aoq_otherDeliveryTerm" placeholder="Specify Delivery Term" style="display:none;margin-top:6px;">
+
+        <label>Payment Term</label>
+        <select type="text" id="aoq_paymentTerm" onchange="toggleOtherPaymentTerm('aoq_paymentTerm','aoq_otherPaymentTerm')">
+          <option value="">-- Select Payment Term --</option>
+          <option>Within 30 days</option><option>Within 30 days upon receipt of items</option>
+          <option>n/20</option><option>Others</option>
+        </select>
+        <input type="text" id="aoq_otherPaymentTerm" placeholder="Specify Payment Term" style="display:none;margin-top:6px;">
+        
+      </div>
+    </div>
+    <div class="btn-area">
+      <button class="action" onclick="submitForm()">ADD ITEM</button>
+      <!-- FIX: VIEW FORM now opens only the AOQ form view -->
+      <button class="action" onclick="openAOQFormView()">📋 PREVIEW AOQ</button>
+      <button class="action" style="background:#2196f3;" onclick="openSupplierScreen()">🏭 ADD SUPPLIER</button>
+      <button class="action success" id="aoq_updateBtn" onclick="updateItem()">UPDATE</button>
+      <button class="action danger"  id="aoq_deleteBtn" onclick="deleteItem()">DELETE</button>
+      <button class="action neutral" onclick="clearForm()">CLEAR</button>
+    </div>
+  </div><!-- /formAOQ -->
+
+
+  <!-- ── RFQ FORM ── -->
+  <div id="formRFQ" style="display:none;">
+    <div class="grid">
+      <div class="card">
+        <div class="section">PR REFERENCE</div>
+        <label>Date *</label>
+        <input type="date" id="rfq_date">
+        <label>Office *</label>
+        <select id="rfq_office">
+          <option value="">-- Select Office --</option>
+          <option>Regional Office</option>
+          <option>Albay Provincial Office</option>
+          <option>Camarines Norte Provincial Office</option>
+          <option>Camarines Sur Provincial Office</option>
+          <option>Catanduanes Provincial Office</option>
+          <option>Masbate Provincial Office</option>
+          <option>Sorsogon Provincial Office</option>
+        </select>
+        <label>PR No. *</label>
+        <input type="text" id="rfq_prNo" placeholder="Enter Purchase Request Number">
+        <label>Fund Cluster</label>
+        <input type="text" id="rfq_fundCluster" placeholder="Enter Fund Cluster">
+        <label>Unit</label>
+        <select id="rfq_unit" onchange="toggleOtherUnit('rfq_unit','rfq_otherUnit')">
+          <option value="">-- Select Unit --</option>
+          <option>Pieces</option><option>Lot</option><option>Pack</option>
+          <option>Dozen</option><option>Gallon</option><option>Kg</option>
+          <option>Liter</option><option>Case</option><option>Others</option>
+        </select>
+        <input type="text" id="rfq_otherUnit" placeholder="Specify Unit" style="display:none;margin-top:6px;">
+      </div>
+      <div class="card">
+        <div class="section">ITEM DETAILS</div>
+        <label>Item Description *</label>
+        <textarea id="rfq_itemDescription" placeholder="Enter complete description"></textarea>
+        <label>Quantity *</label>
+        <input type="number" id="rfq_quantity" placeholder="Enter quantity" oninput="updateTotalCostDisplay('rfq')">
+        <label>Unit Cost *</label>
+        <input type="number" id="rfq_unitCost" placeholder="Enter unit cost" oninput="updateTotalCostDisplay('rfq')">
+        <div class="total-cost-display" id="rfq_totalCostDisplay">
+          <span>Total Cost:</span>
+          <span id="rfq_totalCostValue">₱0.00</span>
+        </div>
+        <label>Purpose / Title</label>
+        <textarea id="rfq_purpose" placeholder="State the purpose or justification"></textarea>
+      </div>
+      <div class="card">
+        <div class="section">RFQ TERMS</div>
+
+         <label>RFQ Date</label>
+        <input type="date" id="rfq_deliveryPeriod">
+
+        <label>Delivery Term</label>
+        <select id="rfq_deliveryTerm" onchange="toggleOtherDeliveryTerm('rfq_deliveryTerm','rfq_otherDeliveryTerm')">
+          <option value="">-- Select Delivery Term --</option>
+          <option>FOB Destination</option><option>n/30</option><option>Within 30 days</option>
+          <option>Others</option>
+        </select>
+        <input type="text" id="rfq_otherDeliveryTerm" placeholder="Specify Delivery Term" style="display:none;margin-top:6px;">
+
+        <label>Payment Term</label>
+        <select id="rfq_paymentTerm" onchange="toggleOtherPaymentTerm('rfq_paymentTerm','rfq_otherPaymentTerm')">
+          <option value="">-- Select Payment Term --</option>
+          <option>within 30 days upon receipt of items</option><option>n/30</option>
+          <option>Others</option>
+        </select>
+        <input type="text" id="rfq_otherPaymentTerm" placeholder="Specify Payment Term" style="display:none;margin-top:6px;">
+
+        </div>
+    </div>
+    <div class="btn-area">
+      <button class="action" onclick="submitForm()">ADD ITEM</button>
+      <!-- FIX: VIEW FORM opens only the RFQ form view -->
+      <button class="action" onclick="openRFQFormView()">📋 VIEW RFQ FORM</button>
+      <button class="action success" id="rfq_updateBtn" onclick="updateItem()">UPDATE</button>
+      <button class="action danger"  id="rfq_deleteBtn" onclick="deleteItem()">DELETE</button>
+      <button class="action neutral" onclick="clearForm()">CLEAR</button>
+    </div>
+  </div><!-- /formRFQ -->
+
+
+  <!-- ── PO FORM ── -->
+  <div id="formPO" style="display:none;">
+    <div class="grid">
+      <div class="card">
+        <div class="section">PURCHASE REQUEST</div>
+        <label>Date </label>
+        <input type="date" id="po_date">
+        <label>Office </label>
+        <select id="po_office">
+          <option value="">-- Select Office --</option>
+          <option>Regional Office</option>
+          <option>Albay Provincial Office</option>
+          <option>Camarines Norte Provincial Office</option>
+          <option>Camarines Sur Provincial Office</option>
+          <option>Catanduanes Provincial Office</option>
+          <option>Masbate Provincial Office</option>
+          <option>Sorsogon Provincial Office</option>
+        </select>
+        <label>PR No. </label>
+        <input type="text" id="po_prNo" placeholder="Enter Purchase Request Number">
+        <label>Fund Cluster</label>
+        <input type="text" id="po_fundCluster" placeholder="Enter Fund Cluster">
+        <div class="procurement-section">Procurement Items</div>
+        <label>Unit</label>
+        <select id="po_unit" onchange="toggleOtherUnit('po_unit','po_otherUnit')">
+          <option value="">-- Select Unit --</option>
+          <option>Pieces</option><option>Lot</option><option>Pack</option>
+          <option>Dozen</option><option>Gallon</option><option>Kg</option>
+          <option>Liter</option><option>Case</option><option>Others</option>
+        </select>
+        
+        <input type="text" id="po_otherUnit" placeholder="Specify Unit" style="display:none;margin-top:6px;">
+        <label>Item Description </label>
+        <textarea id="po_itemDescription" placeholder="Enter complete description"></textarea>
+        <label>Quantity </label>
+        <input type="number" id="po_quantity" placeholder="Enter quantity" oninput="updateTotalCostDisplay('po')">
+        <label>Unit Cost </label>
+        <input type="number" id="po_unitCost" placeholder="Enter unit cost" oninput="updateTotalCostDisplay('po')">
+        <div class="total-cost-display" id="po_totalCostDisplay">
+          <span>Total Cost:</span>
+          <span id="po_totalCostValue">₱0.00</span>
+        </div>
+
+        <label>Purpose / Title</label>
+        <textarea id="po_purpose" placeholder="State the purpose or justification"></textarea>
+      </div>
+      <div class="card">
+        <div class="section">AOQ / RFQ</div>
+        <label>Payment Term</label>
+        <input type="text" id="po_paymentTerm" placeholder="e.g. 30 days after delivery">
+        <label>Delivery Period</label>
+        <textarea id="po_deliveryPeriod" placeholder="e.g. Within 15 calendar days from receipt of PO"></textarea>
+      </div>
+
+      <div class="card">
+        <div class="section">PURCHASE ORDER</div>
+        <label>Supplier</label>
+        <input type="text" id="po_supplier" placeholder="Enter supplier/company name">
+        <label>Supplier Address</label>
+        <textarea id="po_supplierAddress" placeholder="Enter complete supplier address"></textarea>
+        <label>TIN</label>
+        <input type="text" id="po_tin" placeholder="000-000-000-000">
+        <label>Mode of Procurement</label>
+        <input type="text" id="po_modeProcurement" placeholder="e.g. Small Value Procurement">
+        <label>Place of Delivery</label>
+        <textarea id="po_placeDelivery" placeholder="Enter delivery location"></textarea>
+        <label>Date of Delivery</label>
+        <input type="date" id="po_dateDelivery">
+      </div>
+    </div>
+    <div class="btn-area">
+      <button class="action" onclick="submitForm()">ADD ITEM</button>
+      <!-- FIX: VIEW FORM opens only the PO form view -->
+      <button class="action" onclick="openPOFormView()">📋 VIEW PO FORM</button>
+      <button class="action success" id="po_updateBtn" onclick="updateItem()">UPDATE</button>
+      <button class="action danger"  id="po_deleteBtn" onclick="deleteItem()">DELETE</button>
+      <button class="action neutral" onclick="clearForm()">CLEAR</button>
+    </div>
+  </div><!-- /formPO -->
+
+
+</div><!-- /screenForm -->
+
+
+<!-- ══════════════════════════════════════════
+     SCREEN 3 — SUPPLIER ENTRY (AOQ → PO)
+══════════════════════════════════════════ -->
+<div class="screen" id="screenSupplier">
+  <div class="supplier-screen-wrap">
+
+    <div class="supplier-topbar">
+      <button class="back-btn" onclick="closeSupplierScreen()">&#8592; Back to AOQ</button>
+      <span class="form-label-badge aoq">AOQ</span>
+      <span class="form-screen-title">Supplier Quotation Entry (Abstract of Quotations)</span>
+      <div class="supplier-pr-info" id="supplierPrInfo">PR No.: —</div>
+    </div>
+
+    <div class="supplier-count-bar">
+      <label>Number of Suppliers:</label>
+      <select id="supplierCount" onchange="rebuildSupplierColumns()">
+        <option value="1">1 Suppliers</option>
+        <option value="2">2 Suppliers</option>
+        <option value="3">3 Suppliers</option>
+        <option value="4">4 Suppliers</option>
+        <option value="5" selected>5 Suppliers</option>
+      </select>
+      <span style="font-size:14px;color:#666;">Enter each supplier's name and unit prices below. Totals compute automatically. Lowest total is highlighted.</span>
+    </div>
+
+    <!-- Items + price grid -->
+    <div class="supplier-table-wrap">
+      <table class="supplier-table" id="supplierTable">
+        <thead id="supplierTableHead"></thead>
+        <tbody id="supplierTableBody"></tbody>
+        <tfoot id="supplierTableFoot"></tfoot>
+      </table>
+    </div>
+
+    <div class="btn-area" style="margin-top:22px;">
+      <button class="action success" onclick="saveSupplierQuotations()">💾 SAVE AND GENERATE AOQ</button>
+      <button class="action neutral" onclick="closeSupplierScreen()">CANCEL</button>
+    </div>
+
+    <div id="supplierSaveSuccess" style="display:none;text-align:center;padding:40px 20px;">
+      <div style="font-size:48px;margin-bottom:10px;">✅</div>
+      <div style="font-size:18px;font-weight:bold;color:#2e7d32;margin-bottom:6px;">Supplier quotations saved successfully!</div>
+      <div style="font-size:14px;color:#555;margin-bottom:6px;" id="supplierSavePrInfo">PR No.: —</div>
+      <div style="font-size:13px;color:#333;margin-bottom:24px;" id="supplierSavePoInfo"></div>
+      <div style="margin-bottom:12px;">
+        <button onclick="navigateToSheet('Abstract of Qoutations',supplierPrNo)"
+                style="background:#6a1b9a;color:#fff;border:none;padding:10px 24px;border-radius:6px;cursor:pointer;font-size:15px;font-weight:bold;">
+          🔗 Go to Sheet — PR No. <span id="supplierSavePrNo">—</span>: 📨 AOQ ★
+        </button>
+      </div>
+      <button class="action neutral" onclick="closeSupplierScreen()">BACK TO AOQ FORM</button>
+    </div>
+
+  </div>
+</div><!-- /screenSupplier -->
+
+
+<!-- ══════════════════════════════════════════
+     MODAL — FORM VIEW (PR / AOQ / RFQ / PO)
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="prFormModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modalTitle">📋 Form View</h2>
+      <button class="modal-close" onclick="closeModal()">✕ Close</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+
+<script>
+
+  var STANDARD_UNITS = ["Pieces","Lot","Pack","Dozen","Gallon","Kg","Liter","Case"];
+  var STANDARD_PURPOSES = ["For use of BTr ROV","For official use","Office supplies for official use","Supplies/Materials for Establishment"];
+  var STANDARD_DELIVERY_TERMS = ["Within 30 days","FOB Destination","n/30"];
+  var STANDARD_PAYMENT_TERMS = ["Within 30 days","Within 30 days upon receipt of items","n/20","within 30 days upon receipt of items"];
+  var STANDARD_DELIVERY_PERIODS = ["Within seven days from receipt of the Purchase Order.","Within 30 days"];
+
+  // FIX: prItems holds currently loaded/staged items for the PR table
+  // Each item: { row, date, prNo, fundCluster, office, unit, itemDescription, quantity, unitCost, totalCost, purpose, ... }
+  var prItems = [];
+  // searchResults holds the last search results for non-PR forms (RFQ/AOQ/PO)
+  // Used by VIEW FORM functions to avoid stale server queries after update
+  var searchResults = [];
+  // Track items pending save (newly added, not yet in sheet)
+  var pendingItems = [];
+  // Counter to suppress onOfficeChange when office is set programmatically (e.g. via search)
+  // Incremented before each programmatic set, decremented on each change event.
+  // Only generates PR No. when counter reaches 0 (all programmatic updates processed).
+  var _officeSetCount = 0;
+  // Version counter to invalidate stale auto-sequence callbacks
+  var _prNoGenVer = 0;
+
+  /* ─── TOTAL COST FORMULA ─── */
+  function updateTotalCostDisplay(prefix) {
+    var qty  = parseFloat(document.getElementById(prefix + '_quantity').value)  || 0;
+    var cost = parseFloat(document.getElementById(prefix + '_unitCost').value)  || 0;
+    var total = qty * cost;
+    var el = document.getElementById(prefix + '_totalCostValue');
+    if (el) el.textContent = '₱' + formatNum(total);
+  }
+
+  /* ─── NAVIGATION ─── */
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+  }
+
+  function selectFormType(type) {
+    if (type === 'PR') {
+      document.getElementById('otherSubPanel').classList.remove('visible');
+      document.getElementById('poSubPanel').classList.add('visible');
+      return;
+    }
+    if (type === 'OTHER') {
+      document.getElementById('poSubPanel').classList.remove('visible');
+      document.getElementById('otherSubPanel').classList.add('visible');
+      return;
+    }
+    document.getElementById('currentFormType').value = type;
+    document.getElementById('currentPoType').value = '';
+    openFormScreen(type, '');
+  }
+
+  function selectPoType(prType) {
+    document.getElementById('currentFormType').value = 'PR';
+    document.getElementById('currentPoType').value = prType;
+    openFormScreen('PR', prType);
+  }
+
+  /* ── OTHER FORMS — direct link redirect ── */
+  // To assign a URL to a form, paste the link as the value below.
+  // Leave the value as '' if the form has no link yet.
+  var otherFormLinks = {
+    'Disbursement Voucher':                    'https://docs.google.com/spreadsheets/d/1IlAFWXbbT8vF1IUJMtn7dqrGktlzkSeM/edit?gid=859319811#gid=859319811',
+    'Inspection and Acceptance Form':          'https://docs.google.com/spreadsheets/d/1YNVX9-vWLLC-CQoAUdON_CqpmmETwxMF/edit?gid=844810772#gid=844810772',
+    'Requisition and Issuance Report':         'https://docs.google.com/spreadsheets/d/1wPTCm9ukzgrj9hWx6YXkx-foHhzUteQi/edit?gid=1193823077#gid=1193823077',
+    'Inventory Custodian Slip':                'https://docs.google.com/spreadsheets/d/1hFbew3M4FDiaipj8jaQ8DZgP1WBP5ad0/edit?gid=105490678#gid=105490678',
+    'Property Acknowledgement Report':           'hhttps://docs.google.com/spreadsheets/d/1IDV7lHCxaORzeSl53zjfo6V136bYE6Y2/edit?gid=2054921642#gid=2054921642',
+    'Report of Supplies and Materials Issued': 'https://docs.google.com/spreadsheets/d/16ugqPUpVSGiHp9Bi1SNHzAG8qVzcN_jx/edit?gid=2021223564#gid=2021223564',
+    'Market Scoping':                          'https://docs.google.com/document/d/1iVggq7zeW3XcFY8yBdk0zi7ezPmARErq/edit',
+    'Technical Specs':                         'https://docs.google.com/document/d/11hMMa2lX3RyBPHdG060LleYece5aJJTw/edit',
+    'Reso-to-Award':                           'https://docs.google.com/document/d/13Aiten1gD548v2kyCe0pSd8ViEnVKO5D/edit',
+    'Notice of Award':                         'https://docs.google.com/document/d/11yit0gFvNY1SEWNMCR6aLHF9JzoJEvS-/edit',
+    'Notice to Proceed':                       'https://docs.google.com/document/d/14bZe_JE4p6DDAj_hGFkzSg_xyYnjeFmJ/edit',
+    'Obligation Request Status':               'https://docs.google.com/spreadsheets/d/1C8QxJ5lZeHYz0kRIQHbjUikVFMNORBZB/edit?gid=1362629660#gid=1362629660',
+    'Recommending Approval of Extension':      'https://docs.google.com/document/d/1ypJOKsCauEG5ugspGv6FD3jRFfcVLnD2/edit',
+    'Pre-Inspection Report':                   'https://docs.google.com/spreadsheets/d/1I63oUthhEdWBDvk00lYSvrIWbialxhiN/edit?gid=1911299572#gid=1911299572',
+    'Post-Inspection Report':                  'https://docs.google.com/spreadsheets/d/1P5sCuh0BJGtqBQvluYEcE3xq_81XSHY5/edit?gid=2058562933#gid=2058562933',
+    'Waste Material Report':                   'https://docs.google.com/spreadsheets/d/1ffJubaa1ZxT45aJoXRZDOQDX7_IasqoA/edit?gid=1507833371#gid=1507833371'
+  };
+
+  function openOtherForm(formName) {
+    var url = otherFormLinks[formName];
+    if (url && url.trim()) {
+      url = url.trim();
+      var downloadUrl;
+      if (url.indexOf('/spreadsheets/') !== -1) {
+        downloadUrl = url.replace(/\/edit.*$/, '/export?format=xlsx');
+      } else if (url.indexOf('/document/') !== -1) {
+        downloadUrl = url.replace(/\/edit.*$/, '/export?format=docx');
+      } else {
+        downloadUrl = url;
+      }
+      window.open(downloadUrl, '_blank');
+    } else {
+      alert('No link has been assigned to "' + formName + '" yet.\nAsk your administrator to add the URL in the script.');
+    }
+  }
+
+  function openFormScreen(type, poType) {
+    ['formPR','formAOQ','formRFQ','formPO'].forEach(function(id) {
+      document.getElementById(id).style.display = 'none';
+    });
+
+    var formMap = { PR:'formPR', AOQ:'formAOQ', RFQ:'formRFQ', PO:'formPO' };
+    document.getElementById(formMap[type]).style.display = 'block';
+
+    var badge = document.getElementById('formBadge');
+    badge.textContent = type;
+    badge.className = 'form-label-badge';
+    if (type === 'PO')  badge.classList.add('po');
+    if (type === 'AOQ') badge.classList.add('aoq');
+    if (type === 'RFQ') badge.classList.add('rfq');
+
+    var titles = {
+      PR:  'Purchase Request Entry Form',
+      AOQ: 'Abstract of Quotations Entry Form',
+      RFQ: 'Request for Quotation Entry Form',
+      PO:  'Purchase Order Entry Form'
+    };
+    document.getElementById('formScreenTitle').textContent = titles[type] || '';
+
+    var banner = document.getElementById('poTypeBanner');
+    if (type === 'PR' && poType) {
+      document.getElementById('poTypeBannerText').textContent = 'PR Type: ' + poType;
+      banner.classList.add('visible');
+    } else {
+      banner.classList.remove('visible');
+    }
+
+    prItems = [];
+    pendingItems = [];
+    renderItemsTable();
+    clearForm();
+
+    showScreen('screenForm');
+  }
+
+  function goBack() {
+    document.getElementById('poSubPanel').classList.remove('visible');
+    document.getElementById('otherSubPanel').classList.remove('visible');
+    showScreen('screenSelector');
+  }
+
+  /* ─── AUTO-SEQUENCE PR NO (on Office selection) ─── */
+  // Generates the next unique PR No. via server, based on the selected office.
+  // Pattern: PR-{OfficeInitials}-{YYYY}-{MM}-{NNN}
+  // Ensures the generated number does not already exist in the SUMMARY sheet.
+
+  function onOfficeChange() {
+    if (_officeSetCount > 0) { _officeSetCount--; return; }
+    var office = document.getElementById('pr_office').value;
+    if (!office) {
+      document.getElementById('pr_prNo').value = '';
+      var notice = document.getElementById('pr_autoNotice');
+      if (notice) notice.style.display = 'none';
+      return;
+    }
+    autoSequencePRNo(office);
+  }
+
+  function autoSequencePRNo(office) {
+    var ver = ++_prNoGenVer;
+    google.script.run
+      .withSuccessHandler(function(prNo) {
+        if (_prNoGenVer !== ver) return;
+        document.getElementById('pr_prNo').value = prNo;
+        var notice = document.getElementById('pr_autoNotice');
+        if (notice) notice.style.display = 'block';
+      })
+      .withFailureHandler(function() {
+        document.getElementById('pr_prNo').value = 'PR-ERROR';
+      })
+      .getNextUniquePRNo(office);
+  }
+
+  /* ─── FIELD HELPERS ─── */
+
+  function getPrefix() {
+    return document.getElementById('currentFormType').value.toLowerCase() + '_';
+  }
+
+  function getVal(fieldName) {
+    var el = document.getElementById(getPrefix() + fieldName);
+    return el ? el.value : '';
+  }
+
+  function setVal(fieldName, val) {
+    if (fieldName === 'office') _officeSetCount++;
+    var el = document.getElementById(getPrefix() + fieldName);
+    if (el) el.value = val || '';
+  }
+
+  function getUnit() {
+    var p = getPrefix();
+    var unitEl  = document.getElementById(p + 'unit');
+    var otherEl = document.getElementById(p + 'otherUnit');
+    if (!unitEl) return '';
+    return (unitEl.value === 'Others') ? (otherEl ? otherEl.value : '') : unitEl.value;
+  }
+
+  function getOtherVal(field, otherField) {
+    var p = getPrefix();
+    var el = document.getElementById(p + field);
+    var otherEl = document.getElementById(p + otherField);
+    if (!el) return '';
+    return (el.value === 'Others') ? (otherEl ? otherEl.value : '') : el.value;
+  }
+
+  function getFormData() {
+    return {
+      row:             document.getElementById('row').value,
+      date:            getVal('date'),
+      prNo:            getVal('prNo').trim().replace(/[\u200B-\u200D\uFEFF]/g, ''),
+      fundCluster:     getVal('fundCluster'),
+      office:          getVal('office'),
+      unit:            getUnit(),
+      itemDescription: getVal('itemDescription'),
+      quantity:        getVal('quantity'),
+      unitCost:        getVal('unitCost'),
+      purpose:         getOtherVal('purpose', 'otherPurpose'),
+      deliveryTerm:    getOtherVal('deliveryTerm', 'otherDeliveryTerm'),
+      paymentTerm:     getOtherVal('paymentTerm', 'otherPaymentTerm'),
+      deliveryPeriod:  getOtherVal('deliveryPeriod', 'otherDeliveryPeriod'),
+      supplier:        getVal('supplier'),
+      supplierAddress: getVal('supplierAddress'),
+      tin:             getVal('tin'),
+      modeProcurement: getVal('modeProcurement'),
+      placeDelivery:   getVal('placeDelivery'),
+      dateDelivery:    getVal('dateDelivery'),
+      originalItemDescription: document.getElementById('originalItemDescription').value
+    };
+  }
+
+  /* ─── FIX: DUPLICATE CHECK ─── */
+  // Checks against prItems (already in sheet) AND pendingItems (queued to save)
+
+  function checkDuplicate() {
+    var prNo = (document.getElementById('pr_prNo') || {value:''}).value.trim().toLowerCase();
+    var desc = (document.getElementById('pr_itemDescription') || {value:''}).value.trim().toLowerCase();
+    var warn = document.getElementById('pr_dupWarning');
+    if (!warn) return false;
+
+    if (!prNo || !desc) { warn.style.display = 'none'; return false; }
+
+    var allItems = prItems.concat(pendingItems);
+    var isDup = allItems.some(function(item) {
+      return item.prNo.trim().toLowerCase() === prNo &&
+             item.itemDescription.trim().toLowerCase() === desc;
+    });
+
+    warn.style.display = isDup ? 'block' : 'none';
+    return isDup;
+  }
+
+  /* ─── SNAPSHOT HELPERS ─── */
+
+  function snapshotCurrentData() {
+    var data = getFormData();
+    document.getElementById('originalDataSnapshot').value = JSON.stringify(data);
+  }
+
+  function hasChanges() {
+    var snap = document.getElementById('originalDataSnapshot').value;
+    if (!snap) return true;
+    var original = JSON.parse(snap);
+    var current  = getFormData();
+    var keys = Object.keys(original);
+    for (var i = 0; i < keys.length; i++) {
+      if (String(original[keys[i]]) !== String(current[keys[i]])) return true;
+    }
+    return false;
+  }
+
+  function loadDataToForm(data) {
+    var p = getPrefix();
+    document.getElementById('row').value = data.row || '';
+    document.getElementById('originalItemDescription').value = data.itemDescription || '';
+    setVal('date',            data.date);
+    setVal('prNo',            data.prNo);
+    setVal('fundCluster',     data.fundCluster);
+    setVal('office',          data.office);
+    setVal('itemDescription', data.itemDescription);
+    setVal('quantity',        data.quantity);
+    setVal('unitCost',        data.unitCost);
+    setVal('purpose',         data.purpose);
+    setVal('deliveryTerm',    data.deliveryTerm);
+    setVal('paymentTerm',     data.paymentTerm);
+    setVal('deliveryPeriod',  data.deliveryPeriod);
+    setVal('supplier',        data.supplier);
+    setVal('supplierAddress', data.supplierAddress);
+    setVal('tin',             data.tin);
+    setVal('modeProcurement', data.modeProcurement);
+    setVal('placeDelivery',   data.placeDelivery);
+    setVal('dateDelivery',    data.dateDelivery);
+
+    var unitEl  = document.getElementById(p + 'unit');
+    var otherEl = document.getElementById(p + 'otherUnit');
+    if (unitEl) {
+      if (STANDARD_UNITS.indexOf(data.unit) !== -1) {
+        unitEl.value = data.unit;
+        if (otherEl) { otherEl.style.display = 'none'; otherEl.value = ''; }
+      } else {
+        unitEl.value = 'Others';
+        if (otherEl) { otherEl.style.display = 'block'; otherEl.value = data.unit || ''; }
+      }
+    }
+
+    var purposeEl       = document.getElementById(p + 'purpose');
+    var purposeOtherEl  = document.getElementById(p + 'otherPurpose');
+    if (purposeEl && purposeEl.tagName === 'SELECT') {
+      if (STANDARD_PURPOSES.indexOf(data.purpose) !== -1 || !data.purpose) {
+        purposeEl.value = data.purpose || '';
+        if (purposeOtherEl) { purposeOtherEl.style.display = 'none'; purposeOtherEl.value = ''; }
+      } else {
+        purposeEl.value = 'Others';
+        if (purposeOtherEl) { purposeOtherEl.style.display = 'block'; purposeOtherEl.value = data.purpose || ''; }
+      }
+    }
+
+    var deliveryTermEl       = document.getElementById(p + 'deliveryTerm');
+    var deliveryTermOtherEl  = document.getElementById(p + 'otherDeliveryTerm');
+    if (deliveryTermEl && deliveryTermEl.tagName === 'SELECT') {
+      if (STANDARD_DELIVERY_TERMS.indexOf(data.deliveryTerm) !== -1 || !data.deliveryTerm) {
+        deliveryTermEl.value = data.deliveryTerm || '';
+        if (deliveryTermOtherEl) { deliveryTermOtherEl.style.display = 'none'; deliveryTermOtherEl.value = ''; }
+      } else {
+        deliveryTermEl.value = 'Others';
+        if (deliveryTermOtherEl) { deliveryTermOtherEl.style.display = 'block'; deliveryTermOtherEl.value = data.deliveryTerm || ''; }
+      }
+    }
+
+    var paymentTermEl       = document.getElementById(p + 'paymentTerm');
+    var paymentTermOtherEl  = document.getElementById(p + 'otherPaymentTerm');
+    if (paymentTermEl && paymentTermEl.tagName === 'SELECT') {
+      if (STANDARD_PAYMENT_TERMS.indexOf(data.paymentTerm) !== -1 || !data.paymentTerm) {
+        paymentTermEl.value = data.paymentTerm || '';
+        if (paymentTermOtherEl) { paymentTermOtherEl.style.display = 'none'; paymentTermOtherEl.value = ''; }
+      } else {
+        paymentTermEl.value = 'Others';
+        if (paymentTermOtherEl) { paymentTermOtherEl.style.display = 'block'; paymentTermOtherEl.value = data.paymentTerm || ''; }
+      }
+    }
+
+    var deliveryPeriodEl       = document.getElementById(p + 'deliveryPeriod');
+    var deliveryPeriodOtherEl  = document.getElementById(p + 'otherDeliveryPeriod');
+    if (deliveryPeriodEl && deliveryPeriodEl.tagName === 'SELECT') {
+      if (STANDARD_DELIVERY_PERIODS.indexOf(data.deliveryPeriod) !== -1 || !data.deliveryPeriod) {
+        deliveryPeriodEl.value = data.deliveryPeriod || '';
+        if (deliveryPeriodOtherEl) { deliveryPeriodOtherEl.style.display = 'none'; deliveryPeriodOtherEl.value = ''; }
+      } else {
+        deliveryPeriodEl.value = 'Others';
+        if (deliveryPeriodOtherEl) { deliveryPeriodOtherEl.style.display = 'block'; deliveryPeriodOtherEl.value = data.deliveryPeriod || ''; }
+      }
+    }
+
+    var type = document.getElementById('currentFormType').value.toLowerCase();
+    updateTotalCostDisplay(type);
+    snapshotCurrentData();
+
+    // Hide auto-notice when a row is loaded for editing
+    var notice = document.getElementById('pr_autoNotice');
+    if (notice) notice.style.display = 'none';
+  }
+
+  /* ─── FIX: LOAD PR DATA INTO TABLE — auto-fills items table from search results ─── */
+
+  function loadPRItemsIntoTable(results) {
+    prItems = results.map(function(item) {
+      var qty  = Number(item.quantity) || 0;
+      var cost = Number(item.unitCost) || 0;
+      // Always recompute totalCost from qty × unitCost — avoids stale/misaligned stored values
+      var totalCost = qty * cost;
+      return {
+        row:             item.row,
+        date:            item.date,
+        prNo:            item.prNo,
+        fundCluster:     item.fundCluster,
+        office:          item.office,
+        unit:            item.unit,
+        itemDescription: item.itemDescription,
+        quantity:        qty,
+        unitCost:        cost,
+        totalCost:       totalCost,
+        purpose:         item.purpose,
+        deliveryTerm:    item.deliveryTerm    || '',
+        paymentTerm:     item.paymentTerm     || '',
+        deliveryPeriod:  item.deliveryPeriod  || '',
+        supplier:        item.supplier        || '',
+        supplierAddress: item.supplierAddress || '',
+        tin:             item.tin             || '',
+        modeProcurement: item.modeProcurement || '',
+        placeDelivery:   item.placeDelivery   || '',
+        dateDelivery:    item.dateDelivery    || ''
+      };
+    });
+    pendingItems = []; // clear pending when loading existing PR
+    renderItemsTable();
+
+    // Fill header fields from first result
+    if (results.length > 0) {
+      var first = results[0];
+      console.log("loadPRItemsIntoTable first:", first);
+      setVal('date',        first.date);
+      setVal('prNo',        first.prNo);
+      _prNoGenVer++; // invalidate any pending auto-sequence callbacks
+      setVal('fundCluster', first.fundCluster);
+      setVal('office',      first.office);
+    }
+  }
+
+  /* ─── FIX: RENDER ITEMS TABLE (grand total computed here) ─── */
+
+  function renderItemsTable() {
+    var type = document.getElementById('currentFormType').value;
+    if (type !== 'PR') return; // only PR has the items table
+
+    var tbody   = document.getElementById('prItemsBody');
+    var countEl = document.getElementById('prItemsCount');
+    var grandEl = document.getElementById('prGrandTotal');
+    var saveBtn = document.getElementById('prSaveAllBtn');
+    if (!tbody) return;
+
+    var allItems = prItems.concat(pendingItems);
+
+    if (allItems.length === 0) {
+      tbody.innerHTML = '<tr id="prEmptyRow"><td colspan="7" class="empty-items">No items yet. Fill the form and click "+ ADD ITEM".</td></tr>';
+      if (grandEl) grandEl.textContent = 'Grand Total: ₱0.00';
+      if (countEl) countEl.textContent = '0 items';
+      if (saveBtn) saveBtn.style.display = 'none';
+      return;
+    }
+
+    // FIX: Grand total = sum of ALL items (both saved and pending)
+    var grandTotal = 0;
+    var html = '';
+    allItems.forEach(function(item, i) {
+      grandTotal += item.totalCost;
+      var isPending = (i >= prItems.length); // pending items have no row number yet
+      var rowLabel  = isPending ? '(unsaved)' : item.row;
+      var rowClass  = isPending ? 'style="background:#fffde7;"' : '';
+
+      html += '<tr ' + rowClass + ' id="itemRow_' + (isPending ? 'p' + (i - prItems.length) : item.row) + '">'
+        + '<td>' + (i + 1) + (isPending ? ' <em style="color:#e65100;font-size:11px;">new</em>' : '') + '</td>'
+        + '<td>' + (item.unit || '—') + '</td>'
+        + '<td>' + item.itemDescription + '</td>'
+        + '<td>' + item.quantity + '</td>'
+        + '<td>₱' + formatNum(item.unitCost) + '</td>'
+        + '<td class="total-cost">₱' + formatNum(item.totalCost) + '</td>'
+        + '<td>'
+        + '<button class="item-action-btn select-item" onclick="selectItemFromTable(' + i + ')">✏️ Select</button>'
+        + '<button class="item-action-btn remove" onclick="removeItemFromTable(' + i + ',' + isPending + ')">✕ Remove</button>'
+        + '</td>'
+        + '</tr>';
+    });
+
+    tbody.innerHTML = html;
+    // FIX: Grand total displayed in table footer
+    if (grandEl) grandEl.textContent = 'Grand Total: ₱' + formatNum(grandTotal);
+    if (countEl) countEl.textContent = allItems.length + (allItems.length === 1 ? ' item' : ' items');
+    // Show save button only if there are pending items
+    if (saveBtn) saveBtn.style.display = pendingItems.length > 0 ? 'inline-block' : 'none';
+  }
+
+  /* ─── FIX: SELECT ITEM FROM TABLE → loads into form fields ─── */
+
+  function selectItemFromTable(idx) {
+    var allItems = prItems.concat(pendingItems);
+    var item = allItems[idx];
+    if (!item) return;
+
+    loadDataToForm(item);
+
+    // Highlight selected row
+    document.querySelectorAll('#prItemsTable tbody tr').forEach(function(r) {
+      r.classList.remove('selected-row');
+    });
+    var key = idx >= prItems.length ? 'p' + (idx - prItems.length) : item.row;
+    var rowEl = document.getElementById('itemRow_' + key);
+    if (rowEl) rowEl.classList.add('selected-row');
+  }
+
+  /* ─── FIX: REMOVE ITEM FROM TABLE → deletes from sheet if saved ─── */
+
+  function removeItemFromTable(idx, isPending) {
+    var allItems = prItems.concat(pendingItems);
+    var item = allItems[idx];
+    if (!item) return;
+
+    if (isPending) {
+      // Pending item: just remove from pendingItems array, no sheet operation needed
+      var pendingIdx = idx - prItems.length;
+      if (!confirm("Remove this unsaved item from the list?")) return;
+      pendingItems.splice(pendingIdx, 1);
+      renderItemsTable();
+      checkDuplicate();
+    } else {
+      // Saved item: delete from SUMMARY sheet
+      if (!confirm("Delete row " + item.row + " from the Summary sheet? This cannot be undone.")) return;
+
+      google.script.run
+        .withSuccessHandler(function(msg) {
+          if (msg.indexOf("Successfully") !== -1) {
+            // Remove from prItems and re-index: rows shift after deletion so reload from sheet
+            prItems.splice(idx, 1);
+            renderItemsTable();
+            checkDuplicate();
+
+            // If the deleted item was selected in the form, clear it
+            if (document.getElementById('row').value == item.row) {
+              clearItemFields();
+              document.getElementById('row').value = '';
+            }
+
+            // Reload fresh row numbers from the sheet
+            var prNo = item.prNo;
+            if (prNo) {
+              google.script.run
+                .withSuccessHandler(function(freshResults) {
+                  if (freshResults && freshResults.length) {
+                    loadPRItemsIntoTable(freshResults);
+                  } else {
+                    prItems = [];
+                    pendingItems = [];
+                    renderItemsTable();
+                  }
+                })
+                .searchItem(prNo);
+            }
+          } else {
+            alert(msg);
+          }
+        })
+        .withFailureHandler(function(err) { alert("Delete failed: " + err.message); })
+        .deleteItem(item.row);
+    }
+  }
+
+  /* ─── FIX: ADD ITEM TO PENDING LIST ─── */
+
+  function addItem() {
+    var data = getFormData();
+
+    if (!data.date || !data.prNo || !data.office || !data.itemDescription ||
+        !data.quantity || !data.unitCost) {
+      alert("Please fill in all required fields before adding.");
+      return;
+    }
+
+    // FIX: Prevent duplicate
+    if (checkDuplicate()) {
+      alert("This item description already exists under this PR No. Please use a different description or edit the existing item.");
+      return;
+    }
+
+    var qty   = Number(data.quantity)  || 0;
+    var cost  = Number(data.unitCost)  || 0;
+    var total = qty * cost;
+
+    pendingItems.push({
+      row:             '', // not yet saved
+      date:            data.date,
+      prNo:            data.prNo,
+      fundCluster:     data.fundCluster,
+      office:          data.office,
+      unit:            data.unit,
+      itemDescription: data.itemDescription,
+      quantity:        qty,
+      unitCost:        cost,
+      totalCost:       total,
+      purpose:         data.purpose,
+      deliveryTerm:    data.deliveryTerm,
+      paymentTerm:     data.paymentTerm,
+      deliveryPeriod:  data.deliveryPeriod,
+      supplier:        data.supplier,
+      supplierAddress: data.supplierAddress,
+      tin:             data.tin,
+      modeProcurement: data.modeProcurement,
+      placeDelivery:   data.placeDelivery,
+      dateDelivery:    data.dateDelivery
+    });
+
+    renderItemsTable();
+    clearItemFields();
+  }
+
+  /* ─── FIX: SAVE ALL PENDING TO SHEET ─── */
+
+  function saveAllItems() {
+    if (pendingItems.length === 0) { alert("No new items to save!"); return; }
+    if (!confirm("Save " + pendingItems.length + " new item(s) to the Summary sheet?")) return;
+
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        alert(msg);
+        if (msg.indexOf("Successfully") !== -1) {
+          // Reload from sheet to get real row numbers
+          var prNo = pendingItems.length > 0 ? pendingItems[0].prNo : getVal('prNo');
+          pendingItems = [];
+          if (prNo) {
+            google.script.run
+              .withSuccessHandler(function(freshResults) {
+                if (freshResults && freshResults.length) {
+                  loadPRItemsIntoTable(freshResults);
+                } else {
+                  prItems = [];
+                  renderItemsTable();
+                }
+              })
+              .searchItem(prNo);
+          } else {
+            prItems = [];
+            renderItemsTable();
+          }
+          clearItemFields();
+        }
+      })
+      .withFailureHandler(function(err) { alert("Error saving items: " + err.message); })
+      .saveMultipleItems(pendingItems);
+  }
+
+  /* ─── ADD SINGLE ITEM (non-PR forms) ─── */
+
+  function submitForm() {
+    var data = getFormData();
+    if (!data.date || !data.prNo || !data.office ||
+        !data.itemDescription || !data.quantity || !data.unitCost) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        alert(msg);
+        if (msg === "Item Added Successfully!") {
+          var type = document.getElementById('currentFormType').value;
+          var prNo = data.prNo;
+          function safeWriteSheet(method, label) {
+            google.script.run
+              .withSuccessHandler(function(m) { console.log(label + " Sheet write:", m); })
+              .withFailureHandler(function(e) { console.error(label + " Sheet write failed:", e.message); })
+              [method](prNo);
+          }
+          if (type === 'AOQ') {
+            safeWriteSheet('writeToAOQSheet', 'AOQ');
+          } else if (type === 'PO') {
+            safeWriteSheet('writeToPOSheet', 'PO');
+          } else if (type === 'RFQ') {
+            safeWriteSheet('writeToRFQSheet', 'RFQ');
+          }
+          clearForm();
+        }
+      })
+      .saveItem(data);
+  }
+
+  /* ─── SEARCH ─── */
+
+  function searchItem() {
+    var prNo = document.getElementById("searchPR").value.trim();
+    console.log("searchItem called — prNo:", JSON.stringify(prNo), "type:", document.getElementById('currentFormType').value);
+    if (!prNo) { alert("Please enter a PR No. to search."); return; }
+    var type = document.getElementById('currentFormType').value;
+
+    function doSearch() {
+      console.log("doSearch fired — prNo:", JSON.stringify(prNo), "type:", type);
+      google.script.run
+        .withSuccessHandler(function(results) {
+          console.log("doSearch success handler — results:", results ? "count=" + results.length : "null/undefined");
+          document.getElementById('resultsArea').innerHTML = '';
+          if (!results || results.length === 0) {
+            if (results && results._diagnostics) {
+              renderDiagnostics(results._diagnostics);
+            } else {
+              alert("No items found for PR No.: " + prNo);
+            }
+            return;
+          }
+
+          if (type === 'PR') {
+            clearItemFields();
+            loadPRItemsIntoTable(results);
+
+            var existing = document.getElementById('selectNotice');
+            if (existing) existing.parentNode.removeChild(existing);
+            var notice = document.createElement('div');
+            notice.id = 'selectNotice';
+            notice.className = 'auto-load-notice';
+            notice.textContent = '\u2705 Found ' + results.length + ' item(s) for PR No. "' + prNo + '" — results are shown below. Click "Select" in the table to edit a specific item.';
+            document.getElementById('resultsArea').appendChild(notice);
+
+          } else {
+            searchResults = results;
+            buildResultsTable(results, prNo);
+          }
+        })
+        .withFailureHandler(function(err) { alert("Search failed: " + err.message); })
+        .searchItem(prNo);
+    }
+
+    // Chain: write first, then search — avoids GAS warden TransportError from concurrent calls
+    if (type === 'AOQ') {
+      google.script.run
+        .withSuccessHandler(function(m) { console.log("AOQ Sheet write:", m); doSearch(); })
+        .withFailureHandler(function(e) { console.error("AOQ write failed:", e.message); doSearch(); })
+        .writeToAOQSheetWithExistingData(prNo);
+    } else if (type === 'RFQ') {
+      google.script.run
+        .withSuccessHandler(function(m) { console.log("RFQ Sheet write:", m); doSearch(); })
+        .withFailureHandler(function(e) { console.error("RFQ write failed:", e.message); doSearch(); })
+        .writeToRFQSheet(prNo);
+    } else if (type === 'PO') {
+      google.script.run
+        .withSuccessHandler(function(m) { console.log("PO Sheet write:", m); doSearch(); })
+        .withFailureHandler(function(e) { console.error("PO write failed:", e.message); doSearch(); })
+        .writeToPOSheet(prNo);
+    } else if (type === 'PR') {
+      google.script.run
+        .withSuccessHandler(function(m) { console.log("PR Sheet write:", m); doSearch(); })
+        .withFailureHandler(function(e) { console.error("PR write failed:", e.message); doSearch(); })
+        .writeToPRSheet(prNo);
+    } else {
+      doSearch();
+    }
+  }
+
+  /* ─── SEARCH FROM SELECTOR SCREEN (PR type panel) ─── */
+
+  function searchItemFromSelector() {
+    var prNo = document.getElementById('searchPR_selector').value.trim();
+    if (!prNo) { alert('Please enter a PR No. to search.'); return; }
+
+    google.script.run
+      .withSuccessHandler(function(results) {
+        var area = document.getElementById('resultsArea_selector');
+        area.innerHTML = '';
+        if (!results || results.length === 0) {
+          alert('No items found for PR No.: ' + prNo);
+          return;
+        }
+        var indicator = '<div class="auto-load-notice" style="margin-bottom:12px;">'
+          + '\u2705 Found ' + results.length + ' item(s) for PR No. &ldquo;' + prNo + '&rdquo; &mdash; results are shown below.'
+          + '</div>';
+        var html = indicator
+          + '<table class="results-table" id="resultsTableSelector">'
+          + '<thead><tr>'
+          + '<th>Row</th><th>PR No.</th><th>Date</th>'
+          + '<th>Office</th><th>Item Description</th>'
+          + '<th>Qty</th><th>Unit Cost</th><th>Total Cost</th>'
+          + '</tr></thead><tbody>';
+        results.forEach(function(item) {
+          var qty   = Number(item.quantity) || 0;
+          var cost  = Number(item.unitCost) || 0;
+          var total = qty * cost;
+          html += '<tr>'
+            + '<td>' + item.row + '</td>'
+            + '<td><strong>' + item.prNo + '</strong></td>'
+            + '<td>' + item.date + '</td>'
+            + '<td>' + item.office + '</td>'
+            + '<td>' + item.itemDescription + '</td>'
+            + '<td>' + item.quantity + '</td>'
+            + '<td>\u20b1' + formatNum(item.unitCost) + '</td>'
+            + '<td>\u20b1' + formatNum(total) + '</td>'
+            + '</tr>';
+        });
+        html += '</tbody></table>';
+        area.innerHTML = html;
+      })
+      .withFailureHandler(function(err) { alert('Search failed: ' + err.message); })
+      .searchItem(prNo);
+  }
+
+    function buildResultsTable(results, prNo) {
+    console.log("buildResultsTable called — results count:", results ? results.length : 0, "prNo:", prNo);
+    var indicator = '<div class="auto-load-notice" style="margin-bottom:12px;">'
+      + '\u2705 Found ' + results.length + ' item(s) for PR No. &ldquo;' + (prNo || '') + '&rdquo; &mdash; results are shown below.'
+      + '</div>';
+    var html = indicator
+      + '<table class="results-table" id="resultsTable">'
+      + '<thead><tr>'
+      + '<th>Row</th><th>PR No.</th><th>Date</th>'
+      + '<th>Office</th><th>Item Description</th>'
+      + '<th>Qty</th><th>Unit Cost</th><th>Total Cost</th>'
+      + '<th>Action</th>'
+      + '</tr></thead><tbody>';
+
+    results.forEach(function(item) {
+      // Always recompute total for display — avoids stale/misaligned stored values
+      var qty   = Number(item.quantity) || 0;
+      var cost  = Number(item.unitCost) || 0;
+      var total = qty * cost;
+      html += '<tr id="resultRow_' + item.row + '">'
+        + '<td>' + item.row + '</td>'
+        + '<td><strong>' + item.prNo + '</strong></td>'
+        + '<td>' + item.date + '</td>'
+        + '<td>' + item.office + '</td>'
+        + '<td>' + item.itemDescription + '</td>'
+        + '<td>' + item.quantity + '</td>'
+        + '<td>₱' + formatNum(item.unitCost) + '</td>'
+        + '<td>₱' + formatNum(total) + '</td>'
+        + '<td>'
+        + '<button class="select-btn" onclick=\'loadItem(' + JSON.stringify(item).replace(/'/g, '&#39;') + ')\'>✏️ SELECT</button>'
+        + '</td>'
+        + '</tr>';
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('resultsArea').innerHTML = html;
+  }
+
+  /* ─── RENDER DIAGNOSTIC INFO from server searchItem ─── */
+  function renderDiagnostics(diag) {
+    var html = '<div class="auto-load-notice" style="color:#b71c1c;margin-bottom:12px;font-weight:bold;">No matching items found. Diagnostic info below:</div>';
+    html += '<div style="background:#fff;padding:16px;border-radius:8px;border:1px solid #e0e0e0;font-family:monospace;font-size:13px;line-height:1.6;">';
+
+    html += '<div style="margin-bottom:10px;"><strong style="color:#0b5394;">Searched Input:</strong><br>';
+    html += 'Raw: <code>' + escHtml(diag.searchedInputRaw) + '</code><br>';
+    html += 'Cleaned: <code>' + escHtml(diag.cleanedInput) + '</code><br>';
+    html += 'Char codes: <code>[' + (diag.inputChars || []).join(', ') + ']</code></div>';
+
+    if (diag.storedRowCount !== undefined) {
+      html += '<div style="margin-bottom:10px;"><strong style="color:#0b5394;">Sheet Stats:</strong><br>';
+      html += 'Data rows (excl. header): ' + diag.storedRowCount + '<br>';
+      html += 'PR No. samples found: ' + (diag.sampleCount || 0) + '</div>';
+    }
+
+    if (diag.diagnosticSamples && diag.diagnosticSamples.length > 0) {
+      html += '<div><strong style="color:#0b5394;">Stored PR No. Samples (first ' + diag.diagnosticSamples.length + '):</strong></div>';
+      html += '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;">';
+      html += '<tr style="background:#f0f4fa;"><th style="padding:6px;border:1px solid #ddd;text-align:left;">Row</th>';
+      html += '<th style="padding:6px;border:1px solid #ddd;text-align:left;">Raw PR No.</th>';
+      html += '<th style="padding:6px;border:1px solid #ddd;text-align:left;">Raw Char Codes</th>';
+      html += '<th style="padding:6px;border:1px solid #ddd;text-align:left;">Cleaned</th></tr>';
+      diag.diagnosticSamples.forEach(function(s) {
+        var match = (s.cleaned || '').toLowerCase() === diag.cleanedInput.toLowerCase() ? '✅' : '❌';
+        html += '<tr>';
+        html += '<td style="padding:6px;border:1px solid #ddd;">' + s.row + '</td>';
+        html += '<td style="padding:6px;border:1px solid #ddd;max-width:200px;overflow:hidden;">' + escHtml(s.raw) + '</td>';
+        html += '<td style="padding:6px;border:1px solid #ddd;font-size:11px;word-break:break-all;">[' + (s.rawChars || []).join(', ') + ']</td>';
+        html += '<td style="padding:6px;border:1px solid #ddd;">' + escHtml(s.cleaned) + ' ' + match + '</td>';
+        html += '</tr>';
+      });
+      html += '</table>';
+    }
+
+    html += '<div style="margin-top:12px;padding:8px;background:#fff3e0;border-radius:4px;font-size:12px;">';
+    html += 'If the cleaned PR No. column shows ❌ next to your searched PR No., the stored and searched values are different after cleaning. ';
+    html += 'Look at "Raw Char Codes" — if they differ from the expected character codes (e.g., 80=P, 82=R, 45=-, 67=C, 78=N, 80=P, 79=O), ';
+    html += 'invisible characters are embedded in the data.';
+    html += '</div>';
+
+    html += '</div>';
+    document.getElementById('resultsArea').innerHTML = html;
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ─── SELECT ITEM FROM RESULTS TABLE (non-PR) ─── */
+
+  function loadItem(data) {
+    loadDataToForm(data);
+
+    var allRows = document.querySelectorAll('#resultsTable tbody tr');
+    allRows.forEach(function(r) { r.classList.remove('selected-row'); });
+    var selectedRow = document.getElementById('resultRow_' + data.row);
+    if (selectedRow) selectedRow.classList.add('selected-row');
+
+    var existing = document.getElementById('selectNotice');
+    if (existing) existing.parentNode.removeChild(existing);
+
+    var notice = document.createElement('div');
+    notice.id = 'selectNotice';
+    notice.className = 'auto-load-notice';
+    notice.textContent = '✓ Row ' + data.row + ' loaded. Edit fields above and click UPDATE to save changes.';
+
+    var resultsArea = document.getElementById('resultsArea');
+    resultsArea.insertBefore(notice, resultsArea.firstChild);
+  }
+
+  /* ─── FIX: VIEW FORM — separate functions per form type ─── */
+
+  function openPRFormView() {
+    var prNo = getVal('prNo');
+    if (!prNo) { alert("Please enter or search a PR No. first."); return; }
+    document.getElementById('modalTitle').textContent = '📋 Purchase Request — ' + prNo;
+    document.getElementById('modalBody').innerHTML = '<p style="text-align:center;color:#999;">Loading…</p>';
+    document.getElementById('prFormModal').classList.add('open');
+
+    // Use currently loaded items + pending for PR (no extra fetch needed if loaded)
+    var allItems = prItems.concat(pendingItems);
+    if (allItems.length > 0 && allItems[0].prNo === prNo) {
+      try { renderPRFormView(allItems); }
+      catch(e) { document.getElementById('modalBody').innerHTML = '<p style="color:#b71c1c;text-align:center;">Error: ' + e.message + '</p>'; }
+    } else {
+      google.script.run
+        .withSuccessHandler(function(results) {
+          if (!results || results.length === 0) {
+            document.getElementById('modalBody').innerHTML =
+              '<p style="color:#b71c1c;text-align:center;">No data found for PR No. ' + prNo + '</p>';
+            return;
+          }
+          renderPRFormView(results);
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('modalBody').innerHTML =
+            '<p style="color:#b71c1c;text-align:center;">Error: ' + err.message + '</p>';
+        })
+        .searchItem(prNo);
+    }
+  }
+
+  function openAOQFormView() {
+    var prNo = (getVal('prNo') || document.getElementById('searchPR').value || '').trim();
+    if (!prNo) { alert("Please enter or search a PR No. first."); return; }
+    document.getElementById('modalTitle').textContent = '📊 Abstract of Quotations — ' + prNo;
+    document.getElementById('modalBody').innerHTML = '<p style="text-align:center;color:#999;">Loading…</p>';
+    document.getElementById('prFormModal').classList.add('open');
+
+    // Use locally cached search results if available (avoids stale server queries after update)
+    if (searchResults.length > 0 && searchResults[0].prNo.trim().toLowerCase() === prNo.toLowerCase()) {
+      google.script.run
+        .withSuccessHandler(function(pricingJson) {
+          var pricingData = { suppliers: [] };
+          try { var parsed = JSON.parse(pricingJson); if (parsed && parsed.suppliers) pricingData = parsed; } catch(e) {}
+          renderAOQFormView(searchResults, pricingData);
+        })
+        .withFailureHandler(function() {
+          renderAOQFormView(searchResults, { suppliers: [] });
+        })
+        .loadSupplierPricing(prNo);
+      return;
+    }
+
+    // Fallback: load items from SUMMARY
+    google.script.run
+      .withSuccessHandler(function(results) {
+        if (!results || results.length === 0) {
+          document.getElementById('modalBody').innerHTML =
+            '<p style="color:#b71c1c;text-align:center;">No AOQ data found for PR No. ' + prNo + '</p>';
+          return;
+        }
+        searchResults = results;
+        // Also load per-supplier pricing from AOQ sheet
+        google.script.run
+          .withSuccessHandler(function(pricingJson) {
+            var pricingData = { suppliers: [] };
+            try { var parsed = JSON.parse(pricingJson); if (parsed && parsed.suppliers) pricingData = parsed; } catch(e) {}
+            renderAOQFormView(results, pricingData);
+          })
+          .withFailureHandler(function() {
+            renderAOQFormView(results, { suppliers: [] });
+          })
+          .loadSupplierPricing(prNo);
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('modalBody').innerHTML =
+          '<p style="color:#b71c1c;text-align:center;">Error: ' + err.message + '</p>';
+      })
+      .searchItemByType(prNo, 'AOQ');
+  }
+
+  function openRFQFormView() {
+    var prNo = (getVal('prNo') || document.getElementById('searchPR').value || '').trim();
+    if (!prNo) { alert("Please enter or search a PR No. first."); return; }
+    document.getElementById('modalTitle').textContent = '📨 Request for Quotation — ' + prNo;
+    document.getElementById('modalBody').innerHTML = '<p style="text-align:center;color:#999;">Loading…</p>';
+    document.getElementById('prFormModal').classList.add('open');
+
+    // Use locally cached search results if available (avoids stale server queries after update)
+    if (searchResults.length > 0 && searchResults[0].prNo.trim().toLowerCase() === prNo.toLowerCase()) {
+      renderGenericFormView(searchResults, 'RFQ', 'Request for Quotation');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(results) {
+        if (!results || results.length === 0) {
+          document.getElementById('modalBody').innerHTML =
+            '<p style="color:#b71c1c;text-align:center;">No RFQ data found for PR No. ' + prNo + '</p>';
+          return;
+        }
+        searchResults = results;
+        renderGenericFormView(results, 'RFQ', 'Request for Quotation');
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('modalBody').innerHTML =
+          '<p style="color:#b71c1c;text-align:center;">Error: ' + err.message + '</p>';
+      })
+      .searchItemByType(prNo, 'RFQ');
+  }
+
+  function openPOFormView() {
+    var prNo = (getVal('prNo') || document.getElementById('searchPR').value || '').trim();
+    if (!prNo) { alert("Please enter or search a PR No. first."); return; }
+    document.getElementById('modalTitle').textContent = '🛒 Purchase Order — ' + prNo;
+    document.getElementById('modalBody').innerHTML = '<p style="text-align:center;color:#999;">Loading…</p>';
+    document.getElementById('prFormModal').classList.add('open');
+
+    // Use locally cached search results if available (avoids stale server queries after update)
+    if (searchResults.length > 0 && searchResults[0].prNo.trim().toLowerCase() === prNo.toLowerCase()) {
+      renderGenericFormView(searchResults, 'PO', 'Purchase Order');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(results) {
+        if (!results || results.length === 0) {
+          document.getElementById('modalBody').innerHTML =
+            '<p style="color:#b71c1c;text-align:center;">No PO data found for PR No. ' + prNo + '</p>';
+          return;
+        }
+        searchResults = results;
+        renderGenericFormView(results, 'PO', 'Purchase Order');
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('modalBody').innerHTML =
+          '<p style="color:#b71c1c;text-align:center;">Error: ' + err.message + '</p>';
+      })
+      .searchItemByType(prNo, 'PO');
+  }
+
+  /* ─── RENDER PR FORM VIEW (modal body) ─── */
+
+  function renderPRFormView(items) {
+    var r = items[0];
+    // FIX: Grand total computed across all items
+    var grandTotal = 0;
+
+    var rowsHtml = '';
+    items.forEach(function(item, i) {
+      var qty   = Number(item.quantity) || 0;
+      var cost  = Number(item.unitCost) || 0;
+      // Always recompute total for display — avoids stale/misaligned stored values
+      var total = qty * cost;
+      grandTotal += total;
+      rowsHtml += '<tr>'
+        + '<td class="center">' + (i + 1) + '</td>'
+        + '<td class="center">' + (item.unit || '') + '</td>'
+        + '<td class="desc">' + item.itemDescription + '</td>'
+        + '<td>' + qty + '</td>'
+        + '<td>' + formatNum(cost) + '</td>'
+        + '<td>' + formatNum(total) + '</td>'
+        + '</tr>';
+    });
+
+    var html = '<div class="pr-form-view">'
+      + '<div class="pr-agency-header">'
+      + '<div class="agency-name">KAGAWARAN NG PANANALAPI</div>'
+      + '<div class="bureau-name">KAWANIHAN NG INGATANG-YAMAN</div>'
+      + '<div class="bureau-sub">(BUREAU OF THE TREASURY)</div>'
+      + '<div class="bureau-sub">Regional Office No. V — Legazpi City</div>'
+      + '</div>'
+
+      + '<div class="pr-title">PURCHASE REQUEST</div>'
+
+      + '<div class="pr-info-bar">'
+      + '<span><strong>Entity Name:</strong> Bureau of the Treasury</span>'
+      + '<span><strong>Fund Cluster:</strong> ' + (r.fundCluster || '—') + '</span>'
+      + '</div>'
+      + '<div class="pr-info-bar-labeled">'
+      + '<div class="pr-lbl-cell"><span class="lbl">Office/Section:</span><span class="val">' + r.office + '</span></div>'
+      + '<div class="pr-lbl-cell"><span class="lbl">PR No.:</span><span class="val">' + r.prNo + '</span></div>'
+      + '<div class="pr-lbl-cell"><span class="lbl">Date:</span><span class="val">' + r.date + '</span></div>'
+      + '</div>'
+
+      + '<table class="pr-items-table">'
+      + '<thead><tr>'
+      + '<th>Stock/Property No.</th><th>Unit</th>'
+      + '<th>Item Description</th><th>Quantity</th>'
+      + '<th>Unit Cost (₱)</th><th>Total Cost (₱)</th>'
+      + '</tr></thead>'
+      + '<tbody>' + rowsHtml + '</tbody>'
+      + '</table>'
+
+      // FIX: Grand total shown in the PR form view
+      + '<div class="pr-grand-total">GRAND TOTAL: ₱' + formatNum(grandTotal) + '</div>';
+
+    if (r.purpose) {
+      html += '<div class="pr-purpose-box"><strong>Purpose:</strong> ' + r.purpose + '</div>';
+    }
+
+    html += '<div class="pr-sig-row">'
+      + '<div class="pr-sig-block">'
+      + '<div class="sig-label">Requested by:</div>'
+      + '<div class="sig-name">&nbsp;</div>'
+      + '<div style="font-size:12px;color:#666;">Signature / Printed Name / Designation</div>'
+      + '</div>'
+      + '<div class="pr-sig-block">'
+      + '<div class="sig-label">Approved by:</div>'
+      + '<div class="sig-name">&nbsp;</div>'
+      + '<div style="font-size:12px;color:#666;">Signature / Printed Name / Designation</div>'
+      + '</div>'
+      + '</div>';
+
+    html += '<div style="margin-top:18px;padding:12px 16px;background:#f0f4fa;border-radius:8px;font-size:13px;">'
+      + '<strong>🔗 Related Sheets for PR No. ' + r.prNo + ':</strong>&nbsp;&nbsp;'
+      + '<button onclick="navigateToSheet(\'Purchase Request\',\'' + r.prNo + '\')" style="background:#0b5394;color:#fff;border:none;padding:5px 14px;border-radius:5px;cursor:pointer;margin:2px;font-size:12px;">📋 Generate Purchase Request</button>'
+     /* + '<button onclick="navigateToSheet(\'RFQ\',\'' + r.prNo + '\')" style="background:#00695c;color:#fff;border:none;padding:5px 14px;border-radius:5px;cursor:pointer;margin:2px;font-size:12px;">📨 RFQ</button>'
+      + '<button onclick="navigateToSheet(\'Abstract of Qoutations\',\'' + r.prNo + '\')" style="background:#6a1b9a;color:#fff;border:none;padding:5px 14px;border-radius:5px;cursor:pointer;margin:2px;font-size:12px;">📊 Abstract of Qoutations</button>'
+      + '<button onclick="navigateToSheet(\'Purchase Order\',\'' + r.prNo + '\')" style="background:#c77b00;color:#fff;border:none;padding:5px 14px;border-radius:5px;cursor:pointer;margin:2px;font-size:12px;">🛒 Purchase Order</button>'
+      + '</div>'; */
+
+    html += '</div>';
+    document.getElementById('modalBody').innerHTML = html;
+  }
+
+  /* ─── FIX: GENERIC FORM VIEW (AOQ / RFQ / PO) ─── */
+
+  function renderGenericFormView(items, type, typeName) {
+    var r = items[0];
+    var grandTotal = 0;
+
+    var rowsHtml = '';
+    items.forEach(function(item, i) {
+      var qty   = Number(item.quantity) || 0;
+      var cost  = Number(item.unitCost) || 0;
+      // Always recompute total for display — avoids stale/misaligned stored values
+      var total = qty * cost;
+      grandTotal += total;
+      rowsHtml += '<tr>'
+        + '<td class="center">' + (i + 1) + '</td>'
+        + '<td class="center">' + (item.unit || '') + '</td>'
+        + '<td class="desc">' + item.itemDescription + '</td>'
+        + '<td>' + item.quantity + '</td>'
+        + '<td>' + formatNum(item.unitCost) + '</td>'
+        + '<td>' + formatNum(total) + '</td>'
+        + '</tr>';
+    });
+
+    var iconMap = { AOQ:'📊', RFQ:'📨', PO:'🛒' };
+    var icon = iconMap[type] || '📋';
+
+    var html = '<div class="pr-form-view">'
+      + '<div class="pr-agency-header">'
+      + '<div class="agency-name">KAGAWARAN NG PANANALAPI</div>'
+      + '<div class="bureau-name">KAWANIHAN NG INGATANG-YAMAN</div>'
+      + '<div class="bureau-sub">(BUREAU OF THE TREASURY)</div>'
+      + '<div class="bureau-sub">Regional Office No. V — Legazpi City</div>'
+      + '</div>'
+
+      + '<div class="pr-title">' + icon + ' ' + typeName.toUpperCase() + '</div>'
+
+      + '<div class="pr-info-bar">'
+      + '<span><strong>Entity Name:</strong> Bureau of the Treasury</span>'
+      + '<span><strong>Fund Cluster:</strong> ' + (r.fundCluster || '—') + '</span>'
+      + '</div>'
+      + '<div class="pr-info-bar-labeled">'
+      + '<div class="pr-lbl-cell"><span class="lbl">Office/Section:</span><span class="val">' + r.office + '</span></div>'
+      + '<div class="pr-lbl-cell"><span class="lbl">PR No.:</span><span class="val">' + r.prNo + '</span></div>'
+      + '<div class="pr-lbl-cell"><span class="lbl">Date:</span><span class="val">' + r.date + '</span></div>'
+      + '</div>'
+
+      + '<table class="pr-items-table">'
+      + '<thead><tr>'
+      + '<th>#</th><th>Unit</th>'
+      + '<th>Item Description</th><th>Quantity</th>'
+      + '<th>Unit Cost (₱)</th><th>Total Cost (₱)</th>'
+      + '</tr></thead>'
+      + '<tbody>' + rowsHtml + '</tbody>'
+      + '</table>'
+      + '<div class="pr-grand-total">GRAND TOTAL: ₱' + formatNum(grandTotal) + '</div>';
+
+    if (r.deliveryTerm || r.paymentTerm || r.deliveryPeriod) {
+      var periodLabel = (type === 'RFQ') ? 'Date Selection' : 'Delivery Period';
+      html += '<div class="pr-purpose-box">'
+        + '<strong>Delivery Term:</strong> ' + (r.deliveryTerm || '—') + ' &nbsp;|&nbsp; '
+        + '<strong>Payment Term:</strong> ' + (r.paymentTerm || '—') + ' &nbsp;|&nbsp; '
+        + '<strong>' + periodLabel + ':</strong> ' + (r.deliveryPeriod || '—')
+        + '</div>';
+    }
+
+    // FIX: Show supplier block for both PO and AOQ (AOQ stores supplier after saveSupplierData)
+    if ((type === 'PO' || type === 'AOQ') && r.supplier) {
+      html += '<div class="pr-purpose-box">'
+        + '<strong>Supplier:</strong> ' + r.supplier
+        + (r.supplierAddress ? ' &nbsp;|&nbsp; <strong>Address:</strong> ' + r.supplierAddress : '')
+        + (r.tin ? ' &nbsp;|&nbsp; <strong>TIN:</strong> ' + r.tin : '')
+        + '</div>';
+    }
+
+    if (r.purpose) {
+      html += '<div class="pr-purpose-box"><strong>Purpose:</strong> ' + r.purpose + '</div>';
+    }
+
+    html += '<div class="pr-sig-row">'
+      + '<div class="pr-sig-block"><div class="sig-label">Prepared by:</div><div class="sig-name">&nbsp;</div><div style="font-size:12px;color:#666;">Signature / Printed Name / Designation</div></div>'
+      + '<div class="pr-sig-block"><div class="sig-label">Approved by:</div><div class="sig-name">&nbsp;</div><div style="font-size:12px;color:#666;">Signature / Printed Name / Designation</div></div>'
+      + '</div>';
+
+    // FIX: Add "Go to Sheet" navigation buttons — primary sheet for this form type highlighted first
+    var sheetColorMap = {
+      'Purchase Request': '#0b5394',
+      'RFQ':              '#00695c',
+      'Abstract of Qoutations':      '#6a1b9a',
+      'Purchase Order':   '#c77b00'
+    };
+    var sheetIconMap = {
+      'Purchase Request': '📋',
+      'RFQ':              '📨',
+      'Abstract of Qoutations':      '📊',
+      'Purchase Order':   '🛒'
+    };
+    var typeToSheet = { AOQ: 'Abstract of Qoutations', RFQ: 'RFQ', PO: 'Purchase Order' };
+    var primarySheet = typeToSheet[type] || 'Purchase Request';
+    var orderedSheets = [primarySheet];
+
+    var sheetBtns = orderedSheets.map(function(sName) {
+      var isPrimary = (sName === primarySheet);
+      var extra = isPrimary ? 'font-weight:bold;outline:2px solid #fff;' : '';
+      var btnStyle = 'background:' + sheetColorMap[sName] + ';color:#fff;border:none;padding:5px 14px;border-radius:5px;cursor:pointer;margin:2px;font-size:12px;' + extra;
+      return '<button onclick="navigateToSheet(\'' + sName + '\',\'' + r.prNo + '\')" style="' + btnStyle + '">'
+        + sheetIconMap[sName] + ' ' + sName + (isPrimary ? ' ★' : '') + '</button>';
+    }).join('');
+
+    html += '<div style="margin-top:18px;padding:12px 16px;background:#f0f4fa;border-radius:8px;font-size:13px;">'
+      + '<strong>🔗 Go to Sheet — PR No. ' + r.prNo + ':</strong>&nbsp;&nbsp;'
+      + sheetBtns
+      + '</div>';
+
+    html += '</div>';
+    document.getElementById('modalBody').innerHTML = html;
+  }
+
+  /* ─── RENDER AOQ FORM VIEW — per-supplier pricing sections ─── */
+  function renderAOQFormView(items, pricingData) {
+    var r = items[0];
+    var grandTotal = 0;
+    var hasSupplierData = pricingData && pricingData.suppliers && pricingData.suppliers.length > 0;
+    var supplierSections = '';
+
+    if (hasSupplierData) {
+      pricingData.suppliers.forEach(function(sup) {
+        var sectionGrand = 0;
+        var rowsHtml = '';
+        sup.items.forEach(function(item) {
+          var cost  = Number(item.unitCost) || 0;
+          var total = Number(item.totalCost) || 0;
+          if (total === 0 && cost > 0) total = cost; // fallback if only unit cost is stored
+          sectionGrand += total;
+          rowsHtml += '<tr>'
+            + '<td class="desc">' + item.itemDescription + '</td>'
+            + '<td>' + formatNum(cost) + '</td>'
+            + '<td>' + formatNum(total) + '</td>'
+            + '</tr>';
+        });
+        grandTotal += sectionGrand;
+        supplierSections += '<div style="margin-top:18px;">'
+          + '<div style="font-weight:bold;font-size:14px;color:#1565c0;padding:8px 12px;background:#e3f2fd;border-radius:4px;margin-bottom:6px;">🏭 ' + sup.name + '</div>'
+          + '<table class="pr-items-table" style="margin-top:4px;">'
+          + '<thead><tr>'
+          + '<th>SPECIFICATIONS</th><th>UNIT COST (₱)</th><th>TOTAL COST (₱)</th>'
+          + '</tr></thead>'
+          + '<tbody>' + rowsHtml + '</tbody>'
+          + '</table>'
+          + '<div style="text-align:right;font-weight:bold;font-size:13px;padding:4px 12px;color:#2e7d32;">Subtotal: ₱' + formatNum(sectionGrand) + '</div>'
+          + '</div>';
+      });
+    } else {
+      // No per-supplier data — fallback to flat item list
+      var rowsHtml = '';
+      items.forEach(function(item, i) {
+        var qty   = Number(item.quantity) || 0;
+        var cost  = Number(item.unitCost) || 0;
+        var total = qty * cost;
+        grandTotal += total;
+        rowsHtml += '<tr>'
+          + '<td class="center">' + (i + 1) + '</td>'
+          + '<td class="center">' + (item.unit || '') + '</td>'
+          + '<td class="desc">' + item.itemDescription + '</td>'
+          + '<td>' + item.quantity + '</td>'
+          + '<td>' + formatNum(item.unitCost) + '</td>'
+          + '<td>' + formatNum(total) + '</td>'
+          + '</tr>';
+      });
+      supplierSections = '<table class="pr-items-table">'
+        + '<thead><tr>'
+        + '<th>#</th><th>Unit</th><th>Item Description</th><th>Quantity</th>'
+        + '<th>Unit Cost (₱)</th><th>Total Cost (₱)</th>'
+        + '</tr></thead>'
+        + '<tbody>' + rowsHtml + '</tbody>'
+        + '</table>';
+    }
+
+    var html = '<div class="pr-form-view">'
+      + '<div class="pr-agency-header">'
+      + '<div class="agency-name">KAGAWARAN NG PANANALAPI</div>'
+      + '<div class="bureau-name">KAWANIHAN NG INGATANG-YAMAN</div>'
+      + '<div class="bureau-sub">(BUREAU OF THE TREASURY)</div>'
+      + '<div class="bureau-sub">Regional Office No. V — Legazpi City</div>'
+      + '</div>'
+      + '<div class="pr-title">📊 ABSTRACT OF QUOTATIONS</div>'
+      + '<div class="pr-info-bar">'
+      + '<span><strong>Entity Name:</strong> Bureau of the Treasury</span>'
+      + '<span><strong>Fund Cluster:</strong> ' + (r.fundCluster || '—') + '</span>'
+      + '</div>'
+      + '<div class="pr-info-bar-labeled">'
+      + '<div class="pr-lbl-cell"><span class="lbl">Office/Section:</span><span class="val">' + r.office + '</span></div>'
+      + '<div class="pr-lbl-cell"><span class="lbl">PR No.:</span><span class="val">' + r.prNo + '</span></div>'
+      + '<div class="pr-lbl-cell"><span class="lbl">Date:</span><span class="val">' + r.date + '</span></div>'
+      + '</div>'
+      + supplierSections;
+
+    if (hasSupplierData) {
+      html += '<div class="pr-grand-total" style="margin-top:16px;">GRAND TOTAL: ₱' + formatNum(grandTotal) + '</div>';
+    } else {
+      html += '<div class="pr-grand-total" style="margin-top:16px;">GRAND TOTAL: ₱' + formatNum(grandTotal) + '</div>';
+    }
+
+    if (r.purpose) {
+      html += '<div class="pr-purpose-box"><strong>Purpose:</strong> ' + r.purpose + '</div>';
+    }
+
+    html += '<div class="pr-sig-row">'
+      + '<div class="pr-sig-block"><div class="sig-label">Prepared by:</div><div class="sig-name">&nbsp;</div><div style="font-size:12px;color:#666;">Signature / Printed Name / Designation</div></div>'
+      + '<div class="pr-sig-block"><div class="sig-label">Approved by:</div><div class="sig-name">&nbsp;</div><div style="font-size:12px;color:#666;">Signature / Printed Name / Designation</div></div>'
+      + '</div>';
+
+    // Go to Sheet navigation
+    var sheetColorMap = {
+      'Purchase Request': '#0b5394',
+      'RFQ':              '#00695c',
+      'Abstract of Qoutations':      '#6a1b9a',
+      'Purchase Order':   '#c77b00'
+    };
+    var sheetIconMap = {
+      'Purchase Request': '📋',
+      'RFQ':              '📨',
+      'Abstract of Qoutations':      '📊',
+      'Purchase Order':   '🛒'
+    };
+    var sName = 'Abstract of Qoutations';
+    var btnStyle = 'background:' + sheetColorMap[sName] + ';color:#fff;border:none;padding:5px 14px;border-radius:5px;cursor:pointer;margin:2px;font-size:12px;font-weight:bold;outline:2px solid #fff;';
+    html += '<div style="margin-top:18px;padding:12px 16px;background:#f0f4fa;border-radius:8px;font-size:13px;">'
+      + '<strong>🔗 Go to Sheet — PR No. ' + r.prNo + ':</strong>&nbsp;&nbsp;'
+      + '<button onclick="navigateToSheet(\'' + sName + '\',\'' + r.prNo + '\')" style="' + btnStyle + '">'
+      + sheetIconMap[sName] + ' ' + sName + ' ★</button>'
+      + '</div>';
+
+    html += '</div>';
+
+    document.getElementById('modalBody').innerHTML = html;
+  }
+
+  function navigateToSheet(sheetName, prNo) {
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (result && result.url) { window.open(result.url, '_blank'); }
+        else { alert('Sheet "' + sheetName + '" opened in the spreadsheet.'); }
+      })
+      .activateSheetAndGetUrl(sheetName, prNo);
+  }
+
+  function generateRFQFromModal() {
+    var prNoEl = document.querySelector('#modalTitle');
+    var prNo = prNoEl ? prNoEl.textContent.split('— ')[1] : '';
+    if (!prNo) { alert("No PR No. found."); return; }
+
+    google.script.run
+      .withSuccessHandler(function(results) {
+        if (!results || results.length === 0) {
+          alert("No items found for PR No. " + prNo);
+          return;
+        }
+
+        // Collect unique non-empty supplier names
+        var seen = {};
+        var suppliers = [];
+        results.forEach(function(item) {
+          var name = (item.supplier || '').trim();
+          if (name && !seen[name]) {
+            seen[name] = true;
+            suppliers.push(name);
+          }
+        });
+
+        if (suppliers.length === 0) {
+          alert("No supplier names found in SUMMARY for PR No. " + prNo + ". Please add supplier data first via the 🏭 ADD SUPPLIER screen.");
+          return;
+        }
+
+        // Generate one RFQ sheet per supplier sequentially
+        var idx = 0;
+        var created = [];
+
+        function generateNext() {
+          if (idx >= suppliers.length) {
+            alert("Generated " + created.length + " RFQ sheet(s):\n" + created.join('\n'));
+            return;
+          }
+          var supName = suppliers[idx];
+          idx++;
+          google.script.run
+            .withSuccessHandler(function(msg) {
+              created.push(msg);
+              generateNext();
+            })
+            .withFailureHandler(function(err) {
+              alert("Error generating RFQ for \"" + supName + "\": " + err.message);
+              generateNext();
+            })
+            .createSupplierRFQSheet(prNo, supName);
+        }
+
+        generateNext();
+      })
+      .withFailureHandler(function(err) {
+        alert("Error fetching data: " + err.message);
+      })
+      .searchItem(prNo);
+  }
+
+  function generatePOFromModal() {
+    var prNoEl = document.querySelector('#modalTitle');
+    var prNo = prNoEl ? prNoEl.textContent.split('— ')[1] : '';
+    if (!prNo) { alert("No PR No. found."); return; }
+
+    google.script.run
+      .withSuccessHandler(function(results) {
+        if (!results || results.length === 0) {
+          alert("No items found for PR No. " + prNo);
+          return;
+        }
+
+        var seen = {};
+        var suppliers = [];
+        results.forEach(function(item) {
+          var name = (item.supplier || '').trim();
+          if (name && !seen[name]) {
+            seen[name] = true;
+            suppliers.push(name);
+          }
+        });
+
+        if (suppliers.length === 0) {
+          alert("No supplier names found in SUMMARY for PR No. " + prNo + ". Please add supplier data first via the 🏭 ADD SUPPLIER screen.");
+          return;
+        }
+
+        var idx = 0;
+        var created = [];
+
+        function generateNext() {
+          if (idx >= suppliers.length) {
+            alert("Generated " + created.length + " PO sheet(s):\n" + created.join('\n'));
+            return;
+          }
+          var supName = suppliers[idx];
+          idx++;
+          google.script.run
+            .withSuccessHandler(function(msg) {
+              created.push(msg);
+              generateNext();
+            })
+            .withFailureHandler(function(err) {
+              alert("Error generating PO for \"" + supName + "\": " + err.message);
+              generateNext();
+            })
+            .createSupplierPOSheet(prNo, supName);
+        }
+
+        generateNext();
+      })
+      .withFailureHandler(function(err) {
+        alert("Error fetching data: " + err.message);
+      })
+      .searchItem(prNo);
+  }
+
+  function closeModal() {
+    document.getElementById('prFormModal').classList.remove('open');
+  }
+
+  document.getElementById('prFormModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  /* ─── UPDATE ─── */
+
+  function updateItem() {
+    var row = document.getElementById('row').value;
+    if (!row) { alert("Search and select an item first!"); return; }
+
+    if (!hasChanges()) {
+      alert("No changes detected. Please modify at least one field before updating.");
+      return;
+    }
+
+    var data = getFormData();
+    if (!data.prNo || !data.date || !data.office || !data.itemDescription ||
+        !data.quantity || !data.unitCost) {
+      alert("Required fields (PR No., Date, Office, Item Description, Quantity, Unit Cost) cannot be empty. Update cancelled.");
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        alert(msg);
+        if (msg.indexOf("Successfully") !== -1) {
+          var searchVal = document.getElementById('searchPR').value.trim();
+          var prNo = searchVal || getVal('prNo');
+          var type = document.getElementById('currentFormType').value;
+
+          function doReSearch() {
+            if (type === 'PR') {
+              google.script.run
+                .withSuccessHandler(function(results) {
+                  if (results && results.length) {
+                    loadPRItemsIntoTable(results);
+                  } else {
+                    document.getElementById('resultsArea').innerHTML = '<div class="auto-load-notice" style="color:#b71c1c;">No items found for PR No. ' + prNo + ' after update.</div>';
+                  }
+                })
+                .withFailureHandler(function(err) { console.error("PR re-search failed:", err.message); })
+                .searchItem(prNo);
+            } else {
+                google.script.run
+                  .withSuccessHandler(function(results) {
+                    if (results && results.length) {
+                      searchResults = results;
+                      buildResultsTable(results, prNo);
+                    } else if (results && results._diagnostics) {
+                      renderDiagnostics(results._diagnostics);
+                    } else {
+                      document.getElementById('resultsArea').innerHTML = '<div class="auto-load-notice" style="color:#b71c1c;">No items found for PR No. ' + prNo + ' after update.</div>';
+                    }
+                  })
+                  .withFailureHandler(function(err) { console.error("Re-search failed:", err.message);
+                    document.getElementById('resultsArea').innerHTML = '<div class="auto-load-notice" style="color:#b71c1c;">Re-search failed: ' + err.message + '</div>';
+                  })
+                  .searchItem(prNo);
+              }
+            }
+
+            if (prNo) {
+            if (type === 'AOQ') {
+              google.script.run
+                .withSuccessHandler(function(m) { doReSearch(); })
+                .withFailureHandler(function(e) { console.error("AOQ write failed:", e.message); doReSearch(); })
+                .writeToAOQSheet(prNo);
+            } else if (type === 'RFQ') {
+              google.script.run
+                .withSuccessHandler(function(m) { doReSearch(); })
+                .withFailureHandler(function(e) { console.error("RFQ write failed:", e.message); doReSearch(); })
+                .writeToRFQSheet(prNo);
+            } else if (type === 'PO') {
+              google.script.run
+                .withSuccessHandler(function(m) { doReSearch(); })
+                .withFailureHandler(function(e) { console.error("PO write failed:", e.message); doReSearch(); })
+                .writeToPOSheet(prNo);
+            } else if (type === 'PR') {
+              google.script.run
+                .withSuccessHandler(function(m) { doReSearch(); })
+                .withFailureHandler(function(e) { console.error("PR write failed:", e.message); doReSearch(); })
+                .writeToPRSheet(prNo);
+            } else {
+              doReSearch();
+            }
+          }
+          snapshotCurrentData();
+        }
+      })
+      .withFailureHandler(function(err) {
+        alert("Update failed: " + err.message);
+        console.error("updateItem server error:", err.message);
+      })
+      .updateItem(data);
+  }
+
+  /* ─── DELETE (from Update/Delete buttons, non-table path) ─── */
+
+  function deleteItem() {
+    var row = document.getElementById('row').value;
+    if (!row) { alert("Search and select an item first!"); return; }
+    if (!confirm("Delete this item from the sheet? This cannot be undone.")) return;
+
+    var type = document.getElementById('currentFormType').value;
+
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        alert(msg);
+        if (msg.indexOf("Successfully") !== -1) {
+          if (type === 'PR') {
+            // Remove from prItems and reload
+            prItems = prItems.filter(function(item) { return String(item.row) !== String(row); });
+            renderItemsTable();
+          } else {
+            // Remove from results table
+            var rowEl = document.getElementById('resultRow_' + row);
+            if (rowEl) rowEl.parentNode.removeChild(rowEl);
+          }
+          clearForm();
+          var notice = document.getElementById('selectNotice');
+          if (notice) notice.parentNode.removeChild(notice);
+        }
+      })
+      .withFailureHandler(function(err) { alert("Delete failed: " + err.message); })
+      .deleteItem(row);
+  }
+
+  /* ─── CLEAR FORM ─── */
+
+  function clearForm() {
+    searchResults = [];
+    document.getElementById('row').value = '';
+    document.getElementById('originalDataSnapshot').value = '';
+    document.getElementById('originalItemDescription').value = '';
+    document.getElementById('searchPR').value = '';
+    document.getElementById('resultsArea').innerHTML = '';
+
+    var type = document.getElementById('currentFormType').value;
+    if (!type) return;
+    var formEl = document.getElementById('form' + type.toUpperCase());
+    if (!formEl) return;
+
+    formEl.querySelectorAll('input:not([type=hidden]), textarea').forEach(function(el) {
+      el.value = '';
+    });
+
+    var p = getPrefix();
+    var unitEl   = document.getElementById(p + 'unit');
+    var officeEl = document.getElementById(p + 'office');
+    var otherEl  = document.getElementById(p + 'otherUnit');
+    if (unitEl)   unitEl.selectedIndex   = 0;
+    if (officeEl) officeEl.selectedIndex = 0;
+    if (otherEl)  { otherEl.value = ''; otherEl.style.display = 'none'; }
+
+    var typeLower = type.toLowerCase();
+    updateTotalCostDisplay(typeLower);
+
+    if (type === 'PR') {
+      var warn = document.getElementById('pr_dupWarning');
+      if (warn) warn.style.display = 'none';
+    }
+
+    // Reset items table for PR
+    if (type === 'PR') {
+      prItems = [];
+      pendingItems = [];
+      renderItemsTable();
+    }
+  }
+
+  function clearItemFields() {
+    var p = getPrefix();
+    ['itemDescription','quantity','unitCost','purpose'].forEach(function(f) {
+      var el = document.getElementById(p + f);
+      if (el) el.value = '';
+    });
+    var unitEl  = document.getElementById(p + 'unit');
+    var otherEl = document.getElementById(p + 'otherUnit');
+    if (unitEl)  unitEl.selectedIndex = 0;
+    if (otherEl) { otherEl.value = ''; otherEl.style.display = 'none'; }
+    var type = document.getElementById('currentFormType').value.toLowerCase();
+    updateTotalCostDisplay(type);
+    document.getElementById('row').value = '';
+    document.getElementById('originalItemDescription').value = '';
+    var warn = document.getElementById('pr_dupWarning');
+    if (warn) warn.style.display = 'none';
+  }
+
+  /* ═══════════════════════════════════════════════════
+     SUPPLIER SCREEN — state, open/close, build, save
+  ═══════════════════════════════════════════════════ */
+
+  var supplierRFQItems  = [];   // items fetched from SUMMARY for the PR
+  var supplierPrNo      = '';   // PR No. being quoted
+
+  /* ─── OPEN SUPPLIER SCREEN from RFQ form ─── */
+  function openSupplierScreen() {
+    var prNo = getVal('prNo');
+    if (!prNo) { alert("Please enter or search a PR No. in the RFQ form first."); return; }
+
+    supplierPrNo = prNo;
+    document.getElementById('supplierPrInfo').textContent = 'PR No.: ' + prNo;
+
+    function buildAndPopulateScreen(results) {
+      supplierRFQItems = results.map(function(item) {
+        return {
+          prNo:            item.prNo,
+          itemDescription: item.itemDescription,
+          quantity:        Number(item.quantity) || 0,
+          unitCost:        Number(item.unitCost)  || 0,
+          unit:            item.unit  || '',
+          purpose:         item.purpose || ''
+        };
+      });
+      buildSupplierTable();
+      showScreen('screenSupplier');
+
+      // Load previously saved per-supplier pricing from AOQ sheet
+      google.script.run
+        .withSuccessHandler(function(pricingJson) {
+          try {
+            var data = JSON.parse(pricingJson);
+            if (data && data.suppliers && data.suppliers.length > 0) {
+              // Adjust supplier count to match loaded data
+              var countSelect = document.getElementById('supplierCount');
+              countSelect.value = Math.min(Math.max(data.suppliers.length, 1), 5).toString();
+              rebuildSupplierColumns(parseInt(countSelect.value));
+              // Populate names and addresses first
+              data.suppliers.forEach(function(sup, idx) {
+                var nameEl = document.getElementById('supName_' + idx);
+                var addrEl = document.getElementById('supAddr_' + idx);
+                if (nameEl) nameEl.value = sup.name || '';
+                if (addrEl) addrEl.value = sup.address || '';
+              });
+              // Then populate prices (name matching will now succeed)
+              populateSupplierPrices(data.suppliers);
+              // Restore checkbox (selection) states
+              data.suppliers.forEach(function(sup, idx) {
+                if (sup.selectedItems && sup.selectedItems.length > 0) {
+                  var selectedSet = {};
+                  sup.selectedItems.forEach(function(desc) { selectedSet[desc.trim().toLowerCase()] = true; });
+                  for (var i = 0; i < supplierRFQItems.length; i++) {
+                    var chk = document.getElementById('supChk_' + i + '_' + idx);
+                    if (chk) {
+                      chk.checked = !!selectedSet[(supplierRFQItems[i].itemDescription || '').trim().toLowerCase()];
+                    }
+                  }
+                }
+              });
+            }
+          } catch(e) { /* ignore parse errors */ }
+        })
+        .loadSupplierPricing(prNo);
+    }
+
+    // Use all items already loaded in the RFQ table (prItems) if available
+    if (prItems && prItems.length > 0) {
+      buildAndPopulateScreen(prItems);
+      return;
+    }
+
+    // Fallback: fetch from sheet if table not yet loaded
+    google.script.run
+      .withSuccessHandler(function(results) {
+        if (!results || results.length === 0) {
+          alert("No items found for PR No. " + prNo + ". Please add items to the RFQ table first.");
+          return;
+        }
+        buildAndPopulateScreen(results);
+      })
+      .withFailureHandler(function(err) {
+        alert("Failed to load items: " + err.message);
+      })
+      .searchItem(prNo);
+  }
+
+  /* ─── CLOSE / BACK ─── */
+  function closeSupplierScreen() {
+    supplierRFQItems = [];
+    supplierPrNo     = '';
+    // Reset success overlay visibility
+    document.getElementById('supplierSaveSuccess').style.display = 'none';
+    document.getElementById('supplierTable').style.display = '';
+    var bars = document.querySelectorAll('#screenSupplier .supplier-count-bar, #screenSupplier .supplier-table-wrap, #screenSupplier .btn-area');
+    bars.forEach(function(el) { el.style.display = ''; });
+    showScreen('screenForm');
+  }
+
+  /* ─── BUILD / REBUILD TABLE when supplier count changes ─── */
+  function buildSupplierTable() {
+    var n = parseInt(document.getElementById('supplierCount').value, 10) || 5;
+    rebuildSupplierColumns(n);
+  }
+
+  function rebuildSupplierColumns(n) {
+    if (typeof n !== 'number') {
+      n = parseInt(document.getElementById('supplierCount').value, 10) || 5;
+    }
+
+    // Preserve existing supplier name/address values before rebuilding
+    var existingNames = [], existingAddrs = [];
+    for (var s = 0; s < 5; s++) {
+      var nm = document.getElementById('supName_' + s);
+      var ad = document.getElementById('supAddr_' + s);
+      existingNames.push(nm ? nm.value : '');
+      existingAddrs.push(ad ? ad.value : '');
+    }
+
+    // Preserve existing price values before rebuilding
+    var existingPrices = [];
+    // Preserve existing checkbox states before rebuilding
+    var existingChecks = [];
+    for (var i = 0; i < supplierRFQItems.length; i++) {
+      existingPrices[i] = [];
+      existingChecks[i] = [];
+      for (var s = 0; s < 5; s++) {
+        var pi = document.getElementById('supPrice_' + i + '_' + s);
+        existingPrices[i][s] = pi ? pi.value : '';
+        var chk = document.getElementById('supChk_' + i + '_' + s);
+        existingChecks[i][s] = chk ? chk.checked : true;
+      }
+    }
+
+    var thead = document.getElementById('supplierTableHead');
+
+    // ── Row 1: group headers — Item cols span 2 rows, Budget 2-col, each Supplier 2-col ──
+    var r1 = '<tr>'
+      + '<th rowspan="2" style="text-align:center;min-width:45px;">Item<br>No.</th>'
+      + '<th rowspan="2" style="min-width:50px;">Unit</th>'
+      + '<th rowspan="2" style="min-width:45px;">Qty</th>'
+      + '<th rowspan="2" style="text-align:left;min-width:190px;">Description</th>'
+      + '<th colspan="2" style="background:#0b5394;color:#fff;">Approved Budget</th>';
+    for (var s = 0; s < n; s++) {
+      r1 += '<th colspan="3" class="sup-col">'
+        + '<div style="font-weight:bold;font-size:13px;margin-bottom:5px;">Supplier ' + (s + 1) + '</div>'
++ '<input type="text" id="supName_' + s + '" placeholder="Name" value="' + (existingNames[s]||'').replace(/"/g,'&quot;') + '"'
+         + ' oninput="highlightBest()" style="display:block;width:100%;padding:5px 8px;border:1.5px solid #90caf9;border-radius:4px;font-size:12px;font-weight:bold;background:#e3f2fd;box-sizing:border-box;margin-bottom:3px;">'
+         + '<input type="text" id="supAddr_' + s + '" placeholder="Address" value="' + (existingAddrs[s]||'').replace(/"/g,'&quot;') + '"'
+         + ' style="display:block;width:100%;padding:4px 8px;border:1px solid #b0c8e8;border-radius:4px;font-size:11px;background:#f0f7ff;box-sizing:border-box;">'
+        + '</th>';
+    }
+    r1 += '</tr>';
+
+    // ── Row 2: sub-column labels only ──
+    var r2 = '<tr>'
+      + '<th style="background:#0b5394;color:#fff;font-size:12px;">Unit Cost</th>'
+      + '<th style="background:#0b5394;color:#fff;font-size:12px;">Total Cost</th>';
+      for (var s = 0; s < n; s++) {
+        r2 += '<th class="sup-col" style="font-size:12px;">Sel</th>'
+            + '<th class="sup-col" style="font-size:12px;">Unit Cost</th>'
+            + '<th class="sup-col" style="font-size:12px;">Total Cost</th>';
+      }
+    r2 += '</tr>';
+
+    thead.innerHTML = r1 + r2;
+
+    // ── Table body: one row per item ──
+    var tbody = document.getElementById('supplierTableBody');
+    tbody.innerHTML = '';
+
+    supplierRFQItems.forEach(function(item, idx) {
+      var qty      = Number(item.quantity) || 0;
+      var budgUnit = Number(item.unitCost)  || 0;
+      var budgTot  = budgUnit * qty;
+
+      var tr = document.createElement('tr');
+      tr.id  = 'supRow_' + idx;
+
+      var html = '<td class="item-qty" style="text-align:center;">' + (idx + 1) + '</td>'
+        + '<td class="item-qty">' + (item.unit || '—') + '</td>'
+        + '<td class="item-qty">' + qty + '</td>'
+        + '<td class="item-desc">' + item.itemDescription + '</td>'
+        + '<td style="text-align:right;font-weight:bold;color:#0b3d6b;padding:8px 10px;background:#eaf2fb;white-space:nowrap;">'
+        +   (budgUnit > 0 ? formatNum(budgUnit) : '—') + '</td>'
+        + '<td style="text-align:right;font-weight:bold;color:#0b3d6b;padding:8px 10px;background:#eaf2fb;white-space:nowrap;">'
+        +   (budgTot  > 0 ? formatNum(budgTot)  : '—') + '</td>';
+
+      for (var s = 0; s < n; s++) {
+        var prevPrice = (existingPrices[idx] && existingPrices[idx][s]) ? existingPrices[idx][s] : '';
+        var prevChk   = (existingChecks[idx] && existingChecks[idx][s] !== undefined) ? existingChecks[idx][s] : true;
+        html += '<td class="sup-chk" style="text-align:center;vertical-align:middle;">'
+          + '<input type="checkbox" id="supChk_' + idx + '_' + s + '" class="item-chk"'
+          + (prevChk ? ' checked' : '')
+          + ' onchange="recomputeRow(' + idx + ',' + n + ')">'
+          + '</td>'
+          + '<td class="sup-price">'
+          + '<input type="number" id="supPrice_' + idx + '_' + s + '" min="0" step="0.01"'
+          + ' placeholder="0.00" value="' + prevPrice + '"'
+          + ' oninput="recomputeRow(' + idx + ',' + n + ')">'
+          + '</td>'
+          + '<td class="sup-total" id="supTotal_' + idx + '_' + s + '">—</td>';
+      }
+
+      tr.innerHTML = html;
+      tbody.appendChild(tr);
+    });
+
+    // ── Table foot ──
+    var budgGrand = supplierRFQItems.reduce(function(sum, item) {
+      return sum + (Number(item.unitCost) || 0) * (Number(item.quantity) || 0);
+    }, 0);
+
+    var tfoot = document.getElementById('supplierTableFoot');
+    var footHtml = '<tr class="supplier-grand-row">'
+      + '<td class="grand-label" colspan="4" style="text-align:right;">TOTAL ESTIMATED COST:</td>'
+      + '<td style="background:#eaf2fb;"></td>'
+      + '<td style="text-align:right;background:#eaf2fb;font-weight:bold;color:#0b3d6b;">' + formatNum(budgGrand) + '</td>';
+    for (var s = 0; s < n; s++) {
+      footHtml += '<td></td><td></td><td id="supGrand_' + s + '" style="text-align:right;font-weight:bold;">—</td>';
+    }
+    footHtml += '</tr>'
+      + '<tr class="supplier-grand-row" style="background:#fef9e7;">'
+      + '<td class="grand-label" colspan="6" style="font-style:italic;color:#555;">TOTAL CONTRACT AMOUNT (FOR AWARD):</td>';
+    for (var s = 0; s < n; s++) {
+      footHtml += '<td colspan="3" id="supAward_' + s + '" style="text-align:right;font-weight:bold;color:#0b3d6b;">—</td>';
+    }
+    footHtml += '</tr>';
+    tfoot.innerHTML = footHtml;
+
+    for (var i = 0; i < supplierRFQItems.length; i++) {
+      recomputeRow(i, n);
+    }
+  }
+
+  /* ─── RECOMPUTE one item row's totals and grand totals ─── */
+  function recomputeRow(itemIdx, n) {
+    if (typeof n !== 'number') {
+      n = parseInt(document.getElementById('supplierCount').value, 10) || 5;
+    }
+    var item = supplierRFQItems[itemIdx];
+    if (!item) return;
+    var qty = Number(item.quantity) || 0;
+
+    for (var s = 0; s < n; s++) {
+      var chk   = document.getElementById('supChk_' + itemIdx + '_' + s);
+      var inp   = document.getElementById('supPrice_' + itemIdx + '_' + s);
+      var totEl = document.getElementById('supTotal_' + itemIdx + '_' + s);
+      if (!inp || !totEl) continue;
+      if (chk && !chk.checked) {
+        totEl.textContent = '—';
+        continue;
+      }
+      var raw   = inp.value.trim();
+      var price = raw !== '' ? (parseFloat(inp.value) || 0) : 0;
+      var total = price * qty;
+      totEl.textContent = (raw !== '' || price > 0) ? formatNum(total) : '—';
+    }
+
+    recomputeGrandTotals(n);
+    highlightBest(n);
+  }
+
+  /* ─── RECOMPUTE grand totals per supplier column ─── */
+  function recomputeGrandTotals(n) {
+    if (typeof n !== 'number') {
+      n = parseInt(document.getElementById('supplierCount').value, 10) || 5;
+    }
+    for (var s = 0; s < n; s++) {
+      var grand = 0;
+      var anyFilled = false;
+      for (var i = 0; i < supplierRFQItems.length; i++) {
+        var chk = document.getElementById('supChk_' + i + '_' + s);
+        if (chk && !chk.checked) continue;
+        var qty   = Number((supplierRFQItems[i] || {}).quantity) || 0;
+        var inp   = document.getElementById('supPrice_' + i + '_' + s);
+        var raw   = inp ? inp.value.trim() : '';
+        var price = (raw !== '') ? (inp ? (parseFloat(inp.value) || 0) : 0) : 0;
+        if (raw !== '' || price > 0) anyFilled = true;
+        grand += price * qty;
+      }
+      var display = anyFilled ? formatNum(grand) : '—';
+      var grandEl = document.getElementById('supGrand_' + s);
+      var awardEl = document.getElementById('supAward_' + s);
+      if (grandEl) grandEl.textContent = display;
+      if (awardEl) awardEl.textContent = display;
+    }
+  }
+
+  /* ─── HIGHLIGHT supplier with lowest grand total ─── */
+  function highlightBest(n) {
+    if (typeof n !== 'number') {
+      n = parseInt(document.getElementById('supplierCount').value, 10) || 5;
+    }
+
+    // Collect grand totals
+    var totals = [];
+    var anyFilled = false;
+    for (var s = 0; s < n; s++) {
+      var grand = 0;
+      var hasPrices = false;
+      for (var i = 0; i < supplierRFQItems.length; i++) {
+        var chk = document.getElementById('supChk_' + i + '_' + s);
+        if (chk && !chk.checked) continue;
+        var qty   = Number((supplierRFQItems[i] || {}).quantity) || 0;
+        var inp   = document.getElementById('supPrice_' + i + '_' + s);
+        var price = inp ? (parseFloat(inp.value) || 0) : 0;
+        if (price > 0) hasPrices = true;
+        grand += price * qty;
+      }
+      totals.push({ s: s, grand: grand, hasPrices: hasPrices });
+      if (hasPrices) anyFilled = true;
+    }
+
+    // Clear all highlights
+    for (var s = 0; s < n; s++) {
+      for (var i = 0; i < supplierRFQItems.length; i++) {
+        var totEl = document.getElementById('supTotal_' + i + '_' + s);
+        if (totEl) totEl.classList.remove('sup-best');
+      }
+      var grandEl = document.getElementById('supGrand_' + s);
+      if (grandEl) {
+        grandEl.classList.remove('sup-best');
+        // Remove any existing best badge
+        var badge = grandEl.querySelector('.best-badge');
+        if (badge) badge.parentNode.removeChild(badge);
+      }
+    }
+
+    if (!anyFilled) return;
+
+    // Find minimum among suppliers that have at least one price
+    var filled = totals.filter(function(t) { return t.hasPrices; });
+    if (!filled.length) return;
+    var minGrand = Math.min.apply(null, filled.map(function(t) { return t.grand; }));
+    var bestS    = filled.filter(function(t) { return t.grand === minGrand; }).map(function(t) { return t.s; });
+
+    bestS.forEach(function(s) {
+      for (var i = 0; i < supplierRFQItems.length; i++) {
+        var totEl = document.getElementById('supTotal_' + i + '_' + s);
+        if (totEl) totEl.classList.add('sup-best');
+      }
+      var grandEl = document.getElementById('supGrand_' + s);
+      if (grandEl) {
+        grandEl.classList.add('sup-best');
+        var badge = document.createElement('span');
+        badge.className = 'best-badge';
+        badge.textContent = '★ LOWEST';
+        grandEl.appendChild(badge);
+      }
+    });
+  }
+
+  /* ─── POPULATE SUPPLIER PRICES from saved AOQ data ─── */
+  function populateSupplierPrices(suppliers) {
+    var n = parseInt(document.getElementById('supplierCount').value, 10) || 5;
+    suppliers.forEach(function(sup) {
+      var colIdx = -1;
+      for (var s = 0; s < n; s++) {
+        var nameEl = document.getElementById('supName_' + s);
+        if (nameEl && nameEl.value.trim().toLowerCase() === (sup.name || '').trim().toLowerCase()) {
+          colIdx = s;
+          break;
+        }
+      }
+      if (colIdx === -1) return;
+      sup.items.forEach(function(item) {
+        var desc = (item.itemDescription || '').trim().toLowerCase();
+        for (var i = 0; i < supplierRFQItems.length; i++) {
+          if ((supplierRFQItems[i].itemDescription || '').trim().toLowerCase() === desc) {
+            var inp = document.getElementById('supPrice_' + i + '_' + colIdx);
+            if (inp && item.unitCost > 0) {
+              inp.value = item.unitCost;
+            }
+            break;
+          }
+        }
+      });
+    });
+    for (var i = 0; i < supplierRFQItems.length; i++) {
+      recomputeRow(i, n);
+    }
+  }
+
+  /* ─── SAVE ALL SUPPLIER QUOTATIONS ─── */
+  function saveSupplierQuotations() {
+    var n = parseInt(document.getElementById('supplierCount').value, 10) || 5;
+
+    if (!supplierPrNo) { alert("No PR No. found. Please go back and try again."); return; }
+    if (supplierRFQItems.length === 0) { alert("No items to save."); return; }
+
+    // Validate: at least one supplier must have a name + at least one price
+    var hasAny = false;
+    for (var s = 0; s < n; s++) {
+      var nameEl = document.getElementById('supName_' + s);
+      var name   = nameEl ? nameEl.value.trim() : '';
+      if (!name) continue;
+      for (var i = 0; i < supplierRFQItems.length; i++) {
+        var inp = document.getElementById('supPrice_' + i + '_' + s);
+        if (inp && parseFloat(inp.value) > 0) { hasAny = true; break; }
+      }
+      if (hasAny) break;
+    }
+    if (!hasAny) {
+      alert("Please enter at least one supplier name and at least one unit price before saving.");
+      return;
+    }
+
+    if (!confirm("Save supplier quotations for PR No. " + supplierPrNo + " and push to Abstract of Qoutations sheet?")) return;
+
+    // Build one saveSupplierData call per supplier that has a name
+    var suppliersToSave = [];
+    for (var s = 0; s < n; s++) {
+      var nameEl = document.getElementById('supName_' + s);
+      var addrEl = document.getElementById('supAddr_' + s);
+      var name   = nameEl ? nameEl.value.trim() : '';
+      if (!name) continue;
+
+      var rows = supplierRFQItems.map(function(item, i) {
+        var inp      = document.getElementById('supPrice_' + i + '_' + s);
+        var chk      = document.getElementById('supChk_' + i + '_' + s);
+        var unitCost = inp ? (parseFloat(inp.value) || 0) : 0;
+        var qty      = Number(item.quantity) || 0;
+        return {
+          prNo:            supplierPrNo,
+          itemDescription: item.itemDescription,
+          quantity:        qty,
+          unitCost:        unitCost,
+          totalCost:       unitCost * qty,
+          supplier:        name,
+          supplierAddress: addrEl ? addrEl.value.trim() : '',
+          tin:             '',
+          selected:        chk ? chk.checked : true
+        };
+      });
+
+      suppliersToSave.push({ name: name, rows: rows });
+    }
+
+    if (suppliersToSave.length === 0) {
+      alert("No suppliers with names found. Please enter at least one supplier name.");
+      return;
+    }
+
+    // Save sequentially — call saveSupplierData once per supplier
+    var idx = 0;
+    var savedCount = 0;
+    var supplierPONos = {};
+
+    function saveNext() {
+      if (idx >= suppliersToSave.length) {
+        // All saves done — now update AOQ with all supplier names/addresses AND pricing
+        var allSuppliers = [];
+        var allPricing   = [];
+        for (var s = 0; s < n; s++) {
+          var nameEl = document.getElementById('supName_' + s);
+          var addrEl = document.getElementById('supAddr_' + s);
+          var name   = nameEl ? nameEl.value.trim() : '';
+          allSuppliers.push({
+            name: name,
+            address: addrEl ? addrEl.value.trim() : ''
+          });
+          // Build per-supplier pricing for this supplier column
+          var pricingItems = supplierRFQItems.map(function(item, i) {
+            var inp      = document.getElementById('supPrice_' + i + '_' + s);
+            var unitCost = inp ? (parseFloat(inp.value) || 0) : 0;
+            var qty      = Number(item.quantity) || 0;
+            return {
+              itemDescription: item.itemDescription,
+              unitCost:        unitCost,
+              totalCost:       unitCost * qty
+            };
+          });
+          allPricing.push({ name: name, items: pricingItems });
+        }
+        // Build selections data from checkbox states (selected item descriptions per supplier)
+        var allSelections = [];
+        for (var s = 0; s < n; s++) {
+          var selectedItems = [];
+          for (var i = 0; i < supplierRFQItems.length; i++) {
+            var chk = document.getElementById('supChk_' + i + '_' + s);
+            if (chk && chk.checked) {
+              selectedItems.push(supplierRFQItems[i].itemDescription);
+            }
+          }
+          if (selectedItems.length > 0) {
+            allSelections.push({ supplierIdx: s, selectedItems: selectedItems });
+          }
+        }
+        // Build the full payload for saveFullSupplierData
+        var fullPayload = {
+          suppliers: allSuppliers.map(function(sup, s) {
+            return {
+              name: sup.name,
+              address: sup.address,
+              items: (allPricing[s] && allPricing[s].items) || []
+            };
+          }),
+          selections: allSelections,
+          supplierRows: suppliersToSave.reduce(function(acc, sup) {
+            return acc.concat(sup.rows);
+          }, []),
+          supplierPONos: supplierPONos
+        };
+        google.script.run
+          .withSuccessHandler(function(msg) {
+            var bars = document.querySelectorAll('#screenSupplier .supplier-count-bar, #screenSupplier .supplier-table-wrap, #screenSupplier .btn-area');
+            bars.forEach(function(el) { el.style.display = 'none'; });
+            document.getElementById('supplierSavePrInfo').textContent = 'PR No.: ' + supplierPrNo;
+            document.getElementById('supplierSavePrNo').textContent = supplierPrNo;
+            // Display PO Nos for each supplier
+            var poInfoEl = document.getElementById('supplierSavePoInfo');
+            var poEntries = [];
+            for (var name in supplierPONos) {
+              if (supplierPONos.hasOwnProperty(name)) {
+                poEntries.push(name + ': ' + supplierPONos[name]);
+              }
+            }
+            poInfoEl.innerHTML = poEntries.length > 0 ? '📄 ' + poEntries.join('<br>📄 ') : '';
+            document.getElementById('supplierSaveSuccess').style.display = 'block';
+          })
+          .withFailureHandler(function(err) {
+            alert("Supplier data saved, but AOQ cells update failed: " + err.message);
+            closeSupplierScreen();
+          })
+          .saveFullSupplierData(supplierPrNo, JSON.stringify(fullPayload));
+        return;
+      }
+      var sup = suppliersToSave[idx];
+      idx++;
+      google.script.run
+        .withSuccessHandler(function(msg) {
+          savedCount++;
+          // Parse returned JSON to extract PO No.
+          try {
+            var parsed = JSON.parse(msg);
+            if (parsed.poNo) {
+              supplierPONos[sup.name] = parsed.poNo;
+            }
+          } catch(e) { /* msg is plain string — no PO No. */ }
+          saveNext();
+        })
+        .withFailureHandler(function(err) {
+          alert("Error saving supplier \"" + sup.name + "\": " + err.message);
+          saveNext(); // continue with remaining
+        })
+        .saveSupplierData(sup.rows);
+    }
+
+    saveNext();
+  }
+
+  function toggleOtherUnit(unitId, otherId) {
+    var val   = document.getElementById(unitId).value;
+    var other = document.getElementById(otherId);
+    other.style.display = (val === 'Others') ? 'block' : 'none';
+    if (val !== 'Others') other.value = '';
+  }
+
+  function toggleOtherPurpose(purposeId, otherId) {
+    var val   = document.getElementById(purposeId).value;
+    var other = document.getElementById(otherId);
+    other.style.display = (val === 'Others') ? 'block' : 'none';
+    if (val !== 'Others') other.value = '';
+  }
+
+  function toggleOtherDeliveryTerm(deliveryTermId, otherId) {
+    var val   = document.getElementById(deliveryTermId).value;
+    var other = document.getElementById(otherId);
+    other.style.display = (val === 'Others') ? 'block' : 'none';
+    if (val !== 'Others') other.value = '';
+  }
+
+  function toggleOtherPaymentTerm(paymentTermId, otherId) {
+    var val   = document.getElementById(paymentTermId).value;
+    var other = document.getElementById(otherId);
+    other.style.display = (val === 'Others') ? 'block' : 'none';
+    if (val !== 'Others') other.value = '';
+  }
+
+  function toggleOtherDeliveryPeriod(deliveryPeriodId, otherId) {
+    var val   = document.getElementById(deliveryPeriodId).value;
+    var other = document.getElementById(otherId);
+    other.style.display = (val === 'Others') ? 'block' : 'none';
+    if (val !== 'Others') other.value = '';
+  }
+
+  /* ─── HELPERS ─── */
+
+  function formatNum(n) {
+    return Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+</script>
+
+</body>
+</html>
