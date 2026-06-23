@@ -1861,15 +1861,16 @@ function writeToPRSheet(prNo) {
         quantity:        qty,
         unitCost:        unitCost,
         totalCost:       totalCost,   // FIX: use stored value, not recomputed
-        purpose:         summaryData[i][9]
+        purpose:         summaryData[i][9],
+        title:           summaryData[i][19]
       });
     }
   }
 
   if (items.length === 0) return "No items found for PR No.: " + prNo;
 
-  var DATA_START_ROW = 15;
-  var MAX_ITEM_ROWS  = 26;
+  var DATA_START_ROW = 16;
+  var MAX_ITEM_ROWS  = 25;
 
   // Clear previous data in item rows (cols A-G)
   prSheet.getRange(DATA_START_ROW, 1, MAX_ITEM_ROWS, 7).clearContent();
@@ -1912,15 +1913,20 @@ function writeToPRSheet(prNo) {
   // FIX: Date value uses the cleanly-formatted string (no stray label)
   prSheet.getRange("F11").setValue("Date: " + first.date);
 
+  // Title at row 15 (columns C-D merged)
+  prSheet.getRange(15, 1, 1, 6).clearContent();
+  var titleCell = prSheet.getRange("C15:D15");
+  if (!titleCell.isPartOfMerge()) {
+    titleCell.merge();
+  }
+  if (first.title) {
+    prSheet.getRange("C15").setValue("Title: " + first.title);
+  }
+
   // Clear row 42, set Purpose at row 43
   prSheet.getRange(42, 1, 1, 6).clearContent();
   if (first.purpose) {
     prSheet.getRange(43, 1).setValue("Purpose: " + first.purpose);
-  }
-  // Clear row 44–45, set Title at row 46
-  prSheet.getRange(45, 1, 1, 6).clearContent();
-  if (first.title) {
-    prSheet.getRange(46, 1).setValue("Title: " + first.title);
   }
 
   // Grand Total formula — SUM of col G (Total Cost) across all written item rows

@@ -1797,6 +1797,7 @@
         unitCost:        cost,
         totalCost:       totalCost,
         purpose:         item.purpose,
+        title:           item.title           || '',
         deliveryTerm:    item.deliveryTerm    || '',
         paymentTerm:     item.paymentTerm     || '',
         deliveryPeriod:  item.deliveryPeriod  || '',
@@ -2655,11 +2656,12 @@
       // FIX: Grand total shown in the PR form view
       + '<div class="pr-grand-total">GRAND TOTAL: ₱' + formatNum(grandTotal) + '</div>';
 
-    if (r.purpose) {
-      html += '<div class="pr-purpose-box"><strong>Purpose:</strong> ' + r.purpose + '</div>';
-    }
-    if (r.title) {
-      html += '<div class="pr-purpose-box"><strong>Title:</strong> ' + r.title + '</div>';
+    if (r.purpose || r.title) {
+      html += '<div class="pr-purpose-box">'
+        + (r.purpose ? '<strong>Purpose:</strong> ' + r.purpose : '')
+        + (r.purpose && r.title ? '&nbsp;&nbsp;|&nbsp;&nbsp;' : '')
+        + (r.title ? '<strong>Title:</strong> ' + r.title : '')
+        + '</div>';
     }
 
     html += '<div class="pr-sig-row">'
