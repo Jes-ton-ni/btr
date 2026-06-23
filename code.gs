@@ -854,7 +854,8 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
         deliveryPeriod:  summaryData[i][12],
         supplier:        summaryData[i][13],
         supplierAddress: summaryData[i][14],
-        tin:             summaryData[i][15]
+        tin:             summaryData[i][15],
+        title:           summaryData[i][19]
       });
     }
   }
@@ -893,7 +894,7 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
   aoqSheet.getRange("D11").setValue(first.prNo);
   aoqSheet.getRange("E11").clearContent();
   aoqSheet.getRange("F11").setValue("Date: " + first.date);
-  if (first.purpose) aoqSheet.getRange("A11").setValue(first.purpose);
+  if (first.title) aoqSheet.getRange("A11").setValue(first.title);
 
   // Clear footer area before writing new values
   aoqSheet.getRange("F42:G45").clearContent();

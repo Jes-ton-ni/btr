@@ -1113,8 +1113,10 @@
           <span>Total Cost:</span>
           <span id="aoq_totalCostValue">₱0.00</span>
         </div>
-        <label>Purpose / Title</label>
+        <label>Purpose</label>
         <textarea id="aoq_purpose" placeholder="State the purpose or justification"></textarea>
+        <label>Title</label>
+        <textarea id="aoq_title" placeholder="Enter title"></textarea>
       </div>
       <div class="card">
         <div class="section">AOQ TERMS</div>
@@ -1686,6 +1688,7 @@
     setVal('quantity',        data.quantity);
     setVal('unitCost',        data.unitCost);
     setVal('purpose',         data.purpose);
+    setVal('title',           data.title);
     setVal('deliveryTerm',    data.deliveryTerm);
     setVal('paymentTerm',     data.paymentTerm);
     setVal('deliveryPeriod',  data.deliveryPeriod);
@@ -2765,8 +2768,12 @@
         + '</div>';
     }
 
-    if (r.purpose) {
-      html += '<div class="pr-purpose-box"><strong>Purpose:</strong> ' + r.purpose + '</div>';
+    if (r.purpose || r.title) {
+      html += '<div class="pr-purpose-box">'
+        + (r.purpose ? '<strong>Purpose:</strong> ' + r.purpose : '')
+        + (r.purpose && r.title ? '&nbsp;&nbsp;|&nbsp;&nbsp;' : '')
+        + (r.title ? '<strong>Title:</strong> ' + r.title : '')
+        + '</div>';
     }
 
     html += '<div class="pr-sig-row">'
@@ -2896,8 +2903,12 @@
       html += '<div class="pr-grand-total" style="margin-top:16px;">GRAND TOTAL: ₱' + formatNum(grandTotal) + '</div>';
     }
 
-    if (r.purpose) {
-      html += '<div class="pr-purpose-box"><strong>Purpose:</strong> ' + r.purpose + '</div>';
+    if (r.purpose || r.title) {
+      html += '<div class="pr-purpose-box">'
+        + (r.purpose ? '<strong>Purpose:</strong> ' + r.purpose : '')
+        + (r.purpose && r.title ? '&nbsp;&nbsp;|&nbsp;&nbsp;' : '')
+        + (r.title ? '<strong>Title:</strong> ' + r.title : '')
+        + '</div>';
     }
 
     html += '<div class="pr-sig-row">'
