@@ -40,18 +40,26 @@ function parseNum(v) {
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('My Menu')
-    .addItem('Start Canvass', 'showCanvass')
+    .addItem('Download Canvass', 'downloadCanvass')
     .addToUi();
 }
 
 function showCanvass() {
-  var url = 'https://docs.google.com/spreadsheets/d/1JgayRq38k4H7JrQ3i_L10hSuA0Z82A0D/edit?gid=328039259#gid=328039259';
-  
+  var fileId = '1eG0TjW-o9n6k3z_O7UqjCySUIiOOY3tx';
+
+  var downloadUrl =
+    'https://docs.google.com/spreadsheets/d/' +
+    fileId +
+    '/export?format=xlsx';
+
   var html = HtmlService.createHtmlOutput(
-    '<script>window.open("' + url + '", "_blank"); google.script.host.close();</script>'
-  );
-  
-  SpreadsheetApp.getUi().showModalDialog(html, 'Opening Canvass...');
+    '<script>' +
+    'window.location.href="' + downloadUrl + '";' +
+    'setTimeout(function(){google.script.host.close();},1000);' +
+    '</script>'
+  ).setWidth(100).setHeight(50);
+
+  SpreadsheetApp.getUi().showModalDialog(html, 'Downloading...');
 }
 
 /* =================================
@@ -93,7 +101,7 @@ function getNextUniquePRNo(office) {
  * Pattern: PO-{OfficeInitials}-{YYYY}-{MM}-{NNN}
  * Checks existing PO sheet names and AOQ_SupplierData for uniqueness.
  */
-function getNextUniquePONo(prNo) {
+function getNextUniquePONo(prNo, reserved) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var summarySheet = ss.getSheetByName("SUMMARY");
   var today = new Date();
@@ -136,6 +144,13 @@ function getNextUniquePONo(prNo) {
     }
   }
 
+  // Merge reserved numbers (in-memory batch tracking)
+  if (reserved) {
+    for (var key in reserved) {
+      if (reserved.hasOwnProperty(key)) existing[key] = true;
+    }
+  }
+
   // Find the next unique NNN
   var seq = 1;
   while (existing[prefix + String(seq).padStart(3, '0')]) {
@@ -172,12 +187,13 @@ function saveItem(data) {
   const nextRow = sheet.getLastRow() + 1;
   const totalCost = Number(data.quantity || 0) * Number(data.unitCost || 0);
 
-  sheet.getRange(nextRow, 1, 1, 19).setValues([[
+  sheet.getRange(nextRow, 1, 1, 20).setValues([[
     data.date, cleanPrNo(data.prNo), data.fundCluster, data.office, data.unit,
     data.itemDescription, data.quantity, data.unitCost, totalCost,
     data.purpose, data.deliveryTerm, data.paymentTerm, data.deliveryPeriod,
     data.supplier, data.supplierAddress, data.tin,
-    data.modeProcurement, data.placeDelivery, data.dateDelivery
+    data.modeProcurement, data.placeDelivery, data.dateDelivery,
+    data.title
   ]]);
 
   return "Item Added Successfully!";
@@ -206,13 +222,14 @@ function saveMultipleItems(itemsArray) {
       d.itemDescription, d.quantity, d.unitCost, totalCost,
       d.purpose, d.deliveryTerm, d.paymentTerm, d.deliveryPeriod,
       d.supplier, d.supplierAddress, d.tin,
-      d.modeProcurement, d.placeDelivery, d.dateDelivery
+      d.modeProcurement, d.placeDelivery, d.dateDelivery,
+      d.title
     ];
   });
 
   var sheet   = getSheet();
   var nextRow = sheet.getLastRow() + 1;
-  sheet.getRange(nextRow, 1, rows.length, 19).setValues(rows);
+  sheet.getRange(nextRow, 1, rows.length, 20).setValues(rows);
 
   try {
     writeToPRSheet(cleanPrNo(itemsArray[0].prNo));
@@ -254,6 +271,7 @@ function searchItem(prNo) {
         unitCost: data[i][7],
         totalCost: data[i][8],
         purpose: data[i][9],
+        title: data[i][19],
         deliveryTerm: data[i][10],
         paymentTerm: data[i][11],
         deliveryPeriod: formatDate(data[i][12]),
@@ -368,6 +386,7 @@ function searchSuppliersByPR(prNo) {
         supplier: supplierName,
         supplierAddress: String(aoqData[i][2] || '').trim(),
         tin: String(aoqData[i][3] || '').trim(),
+        poNo: String(aoqData[i][9] || '').trim(),
         modeProcurement: '',
         placeDelivery: '',
         dateDelivery: '',
@@ -496,7 +515,7 @@ function updateItem(data) {
   }
 
   const existing = sheet
-    .getRange(targetRow, 1, 1, 19)
+    .getRange(targetRow, 1, 1, 20)
     .getValues()[0];
 
   if (!existing || !existing[1]) {
@@ -529,7 +548,8 @@ function updateItem(data) {
     data.tin,                      // P TIN
     data.modeProcurement,          // Q Mode of Procurement
     data.placeDelivery,            // R Place of Delivery
-    data.dateDelivery              // S Date of Delivery
+    data.dateDelivery,             // S Date of Delivery
+    data.title                     // T Title
   ];
 
   Logger.log("===== BEFORE UPDATE =====");
@@ -539,7 +559,7 @@ function updateItem(data) {
   });
 
   sheet
-    .getRange(targetRow, 1, 1, 19)
+    .getRange(targetRow, 1, 1, 20)
     .setValues([updatedRow]);
 
   SpreadsheetApp.flush();
@@ -667,7 +687,8 @@ function getPRHeader(prNo) {
         tin:             data[i][15],
         modeProcurement: data[i][16],
         placeDelivery:   data[i][17],
-        dateDelivery:    formatDate(data[i][18])
+        dateDelivery:    formatDate(data[i][18]),
+        title:           data[i][19]
       };
     }
   }
@@ -758,7 +779,7 @@ function writeToRFQSheet(prNo) {
   var f8Date = (f8Value instanceof Date) ? f8Value : new Date(f8Value);
   f8Date.setDate(f8Date.getDate() + 3);
   var dueDate = Utilities.formatDate(f8Date, Session.getScriptTimeZone(), "MM/dd/yyyy");
-  var introText = "This Office is undergoing procurement of labor and materials for the repainting of the interior walls.  As a known supplier that typically provides the required goods and services, we are sending this Request of Quotation.  Please quote your possible lowest price by filling in the blanks below and return to this Office duly accomplished on or before";
+  var introText = "This Office is undergoing procurement of ____________________________________.  As a known supplier that typically provides the required goods and services, we are sending this Request of Quotation.  Please quote your possible lowest price by filling in the blanks below and return to this Office duly accomplished on or before";
   rfqSheet.getRange("A13").setValue(introText + " " + dueDate);
 
   // Write items starting at row 17, cols A-E
@@ -846,10 +867,10 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
 
   aoqSheet.getRange(DATA_START_ROW, 1, MAX_ITEM_ROWS, 7).clearContent();
 
-  // Clear per-supplier pricing columns
+  // Clear per-supplier pricing columns (Item Desc, UC, TC — 3 cols each)
   var supPriceCols = [8, 11, 14, 17, 20]; // H, K, N, Q, T
   for (var ps = 0; ps < supPriceCols.length; ps++) {
-    aoqSheet.getRange(DATA_START_ROW, supPriceCols[ps], MAX_ITEM_ROWS, 2).clearContent();
+    aoqSheet.getRange(DATA_START_ROW, supPriceCols[ps], MAX_ITEM_ROWS, 3).clearContent();
   }
 
   var rows = items.map(function(item, i) {
@@ -874,28 +895,35 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
   aoqSheet.getRange("F11").setValue("Date: " + first.date);
   if (first.purpose) aoqSheet.getRange("A11").setValue(first.purpose);
 
-  // Clear footer area F42:G45 before writing new values
+  // Clear footer area before writing new values
   aoqSheet.getRange("F42:G45").clearContent();
+  aoqSheet.getRange("A44:E45").breakApart();
+  aoqSheet.getRange("A44:E45").clearContent();
 
   var lastDataRow = DATA_START_ROW + items.length - 1;
+  aoqSheet.getRange("A42:E42").merge().setValue("TOTAL ESTIMATED COST:");
   aoqSheet.getRange("A43").setValue("TOTAL CONTRACT AMOUNT (FOR AWARD):");
   aoqSheet.getRange("G42").setFormula("=SUM(G" + DATA_START_ROW + ":G" + lastDataRow + ")");
-  // Per-supplier grand total formulas (I42, L42, O42, R42, U42)
-  var supTotalCols = [9, 12, 15, 18, 21];
+  // Per-supplier grand total formulas (J42, M42, P42, S42, V42)
+  var supTotalCols = [10, 13, 16, 19, 22];
   for (var st = 0; st < supTotalCols.length; st++) {
     var cl = String.fromCharCode(64 + supTotalCols[st]);
     aoqSheet.getRange(42, supTotalCols[st]).setFormula("=SUM(" + cl + DATA_START_ROW + ":" + cl + lastDataRow + ")");
   }
 
-  if (first.paymentTerm) aoqSheet.getRange("F44").setValue(first.paymentTerm);
-  if (first.deliveryPeriod) aoqSheet.getRange("F45").setValue(first.deliveryPeriod);
+  aoqSheet.getRange("A44:E44").merge().setValue("Payment Terms");
+  aoqSheet.getRange("A45:E45").merge().setValue("Delivery Period");
+  aoqSheet.getRange("A46:V46").merge().setValue("ANALYSIS/RECOMMENDATION: Based on the above abstract of quotations, it is hereby recommended that...");
+
+  aoqSheet.getRange("B48").setValue("Prepared By: ");
+  aoqSheet.getRange("B53:D53").merge().setValue("Recommending approval: ");
 
   // Write supplier names and addresses into merged cells
   var supplierCells = ['H14', 'K14', 'N14', 'Q14', 'T14'];
-  var selectionCells = ['H15', 'K15', 'N15', 'Q15', 'T15'];
+  var specCols = ['H15', 'K15', 'N15', 'Q15', 'T15'];
   for (var s = 0; s < supplierCells.length; s++) {
     aoqSheet.getRange(supplierCells[s]).clearContent();
-    aoqSheet.getRange(selectionCells[s]).clearContent();
+    aoqSheet.getRange(specCols[s]).setValue("SPECIFICATIONS");
   }
 
   if (suppliersJson) {
@@ -940,7 +968,7 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
         log("pricing[" + s + "]: name='" + (pSup ? pSup.name : 'null') + "', items=" + (pSup && pSup.items ? pSup.items.length : 0));
         if (!pSup || !pSup.items || pSup.items.length === 0) continue;
 
-        var startCol = 8 + s * 3;  // Unit Cost column
+        var startCol = 8 + s * 3;  // Item Description column of supplier block
 
         for (var r = 0; r < pSup.items.length; r++) {
           var pItem = pSup.items[r];
@@ -963,8 +991,9 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
 
           Logger.log("Supplier '" + pSup.name + "' → Item: '" + itemDesc + "' → AOQ Row: " + aoqRow + ", UC: " + uc + ", TC: " + tc + ", Col: " + startCol);
 
-          aoqSheet.getRange(aoqRow, startCol).setValue(uc);
-          aoqSheet.getRange(aoqRow, startCol + 1).setValue(tc);
+          aoqSheet.getRange(aoqRow, startCol).setValue(itemDesc);
+          aoqSheet.getRange(aoqRow, startCol + 1).setValue(uc);
+          aoqSheet.getRange(aoqRow, startCol + 2).setValue(tc);
         }
       }
     } catch (e) {
@@ -972,22 +1001,6 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
     }
   } else {
     log("pricingJson is EMPTY or UNDEFINED — supplier pricing will NOT be written");
-  }
-
-  // Write per-supplier selection state (selected item descriptions) to row 15
-  if (selectionsJson) {
-    try {
-      var selectionsData = JSON.parse(selectionsJson);
-      for (var s = 0; s < Math.min(selectionsData.length, 5); s++) {
-        var selEntry = selectionsData[s];
-        if (selEntry && selEntry.selectedItems && selEntry.selectedItems.length > 0) {
-          var selCol = 8 + s * 3;
-          aoqSheet.getRange(15, selCol).setValue(selEntry.selectedItems.join(','));
-        }
-      }
-    } catch (e) {
-      Logger.log("Error parsing selectionsJson: " + e);
-    }
   }
 
   return "Abstract of Qoutations Sheet populated with " + items.length + " item(s) for PR No. " + prNo;
@@ -1011,11 +1024,9 @@ function writeToAOQSheetWithExistingData(prNo) {
   log("writeToAOQSheetWithExistingData — prNo: " + prNo + ", nPrNo: " + nPrNo + ", storedPrNo: '" + storedPrNo + "', match: " + (storedPrNo === nPrNo));
 
   var supplierCols = [8, 11, 14, 17, 20];
-  var selections = [];
 
   if (storedPrNo === nPrNo) {
     var supplierRow = 14;
-    var selectionRow = 15;
     var DATA_START_ROW = 16;
     var MAX_ITEM_ROWS = 35;
 
@@ -1041,8 +1052,8 @@ function writeToAOQSheetWithExistingData(prNo) {
 
       suppliers.list.push({ name: name, address: address });
 
-      var unitCosts = aoqSheet.getRange(DATA_START_ROW, col, MAX_ITEM_ROWS, 1).getValues();
-      var totalCosts = aoqSheet.getRange(DATA_START_ROW, col + 1, MAX_ITEM_ROWS, 1).getValues();
+      var unitCosts = aoqSheet.getRange(DATA_START_ROW, col + 1, MAX_ITEM_ROWS, 1).getValues();
+      var totalCosts = aoqSheet.getRange(DATA_START_ROW, col + 2, MAX_ITEM_ROWS, 1).getValues();
       var items = [];
       for (var r = 0; r < MAX_ITEM_ROWS; r++) {
         var desc = String(itemDescs[r] || '').trim();
@@ -1058,12 +1069,6 @@ function writeToAOQSheetWithExistingData(prNo) {
       suppliers.pricing.push({ name: name, items: items });
     }
 
-    // Also read selection state (row 15)
-    for (var s = 0; s < supplierCols.length; s++) {
-      var selCell = aoqSheet.getRange(selectionRow, supplierCols[s]).getValue();
-      var selStr = String(selCell || '').trim();
-      selections.push(selStr);
-    }
   } else {
     // Fallback: read supplier data from AOQ_SupplierData when AOQ sheet has a different PR
     var aoqDataSheet = ss.getSheetByName("AOQ_SupplierData");
@@ -1086,15 +1091,12 @@ function writeToAOQSheetWithExistingData(prNo) {
         }
         if (aoqRows.length > 0) {
           var groups = {};
-          var selByCol = {};
           aoqRows.forEach(function(row) {
             var key = row.colIdx;
             if (!groups[key]) {
               groups[key] = { name: row.supplierName, address: row.supplierAddress, items: [] };
-              selByCol[key] = [];
             }
             groups[key].items.push({ itemDescription: row.itemDescription, unitCost: row.unitCost, totalCost: row.totalCost });
-            if (row.selected) selByCol[key].push(row.itemDescription);
           });
           // Build arrays aligned by colIdx (0-4) — always 5 entries for correct column mapping
           for (var col = 0; col < 5; col++) {
@@ -1105,7 +1107,6 @@ function writeToAOQSheetWithExistingData(prNo) {
               suppliers.list.push({ name: '', address: '' });
               suppliers.pricing.push({ name: '', items: groups[col] ? groups[col].items : [] });
             }
-            selections[col] = selByCol[col] ? selByCol[col].join(',') : '';
           }
         }
       }
@@ -1120,20 +1121,7 @@ function writeToAOQSheetWithExistingData(prNo) {
   log("suppliersJson built: " + (suppliersJson ? suppliersJson.substring(0, 150) : "EMPTY"));
   log("pricingJson built: " + (pricingJson ? pricingJson.substring(0, 150) : "EMPTY"));
 
-  // Build selections JSON from row 15 data (preserved during search)
-  var selectionsData = [];
-  for (var s = 0; s < supplierCols.length; s++) {
-    if (selections[s]) {
-      var items_arr = selections[s].split(',').map(function(item) { return item.trim(); }).filter(function(item) { return item; });
-      if (items_arr.length > 0) {
-        selectionsData.push({ supplierIdx: s, selectedItems: items_arr });
-      }
-    }
-  }
-  var selectionsJson = selectionsData.length > 0 ? JSON.stringify(selectionsData) : '';
-  if (selectionsJson) Logger.log("writeToAOQSheetWithExistingData — selections: " + selectionsJson);
-
-  return writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson);
+  return writeToAOQSheet(prNo, suppliersJson, pricingJson, '');
 }
 
 
@@ -1153,7 +1141,6 @@ function loadSupplierPricing(prNo) {
 
   var supplierCols = [8, 11, 14, 17, 20]; // 1-indexed: H, K, N, Q, T
   var supplierRow = 14;
-  var selectionRow = 15;
   var DATA_START_ROW = 16;
   var MAX_ITEM_ROWS = 35;
 
@@ -1185,13 +1172,10 @@ function loadSupplierPricing(prNo) {
           }
         }
 
-        // Read selection state from row 15
-        var selCell = aoqSheet.getRange(selectionRow, col).getValue();
-        var selStr = String(selCell || '').trim();
-        var selectedItems = selStr ? selStr.split(',').map(function(item) { return item.trim(); }).filter(function(item) { return item; }) : [];
+        var selectedItems = [];
 
-        var unitCosts = aoqSheet.getRange(DATA_START_ROW, col, MAX_ITEM_ROWS, 1).getValues();
-        var totalCosts = aoqSheet.getRange(DATA_START_ROW, col + 1, MAX_ITEM_ROWS, 1).getValues();
+        var unitCosts = aoqSheet.getRange(DATA_START_ROW, col + 1, MAX_ITEM_ROWS, 1).getValues();
+        var totalCosts = aoqSheet.getRange(DATA_START_ROW, col + 2, MAX_ITEM_ROWS, 1).getValues();
 
         var items = [];
         for (var r = 0; r < MAX_ITEM_ROWS; r++) {
@@ -1350,7 +1334,7 @@ function loadSupplierPricing(prNo) {
    from SUMMARY data — uses stored
    totalCost (col I) for accurate grand total.
 ================================= */
-function writeToPOSheet(prNo) {
+function writeToPOSheet(prNo, supplierName) {
   var ss           = SpreadsheetApp.getActiveSpreadsheet();
   var aoqDataSheet = ss.getSheetByName("AOQ_SupplierData");
   var summarySheet = ss.getSheetByName("SUMMARY");
@@ -1365,30 +1349,37 @@ function writeToPOSheet(prNo) {
 
   // Build lookup of selected items from AOQ_SupplierData
   var selectedPrices = {};
-  var supplierName = '';
+  var supplierNameOut = '';
   var supplierAddress = '';
   var supplierTin = '';
+  var poNo = '';
 
   for (var i = 1; i < aoqData.length; i++) {
-    if (cleanPrNo(String(aoqData[i][0] || '')).toLowerCase() === nPrNo &&
-        String(aoqData[i][7] || '').toUpperCase() === 'TRUE') {
-      var desc = String(aoqData[i][4] || '').trim().toLowerCase();
-      if (desc) {
-        selectedPrices[desc] = {
-          unitCost:  Number(aoqData[i][5] || 0),
-          totalCost: Number(aoqData[i][6] || 0)
-        };
-      }
-      if (!supplierName) {
-        supplierName    = String(aoqData[i][1] || '').trim();
-        supplierAddress = String(aoqData[i][2] || '').trim();
-        supplierTin     = String(aoqData[i][3] || '').trim();
-      }
+    var rowPrNo = cleanPrNo(String(aoqData[i][0] || '')).toLowerCase();
+    if (rowPrNo !== nPrNo) continue;
+    if (String(aoqData[i][7] || '').toUpperCase() !== 'TRUE') continue;
+
+    var rowSupplier = String(aoqData[i][1] || '').trim();
+    // If supplierName is specified, only include items matching that supplier
+    if (supplierName && rowSupplier.toLowerCase() !== supplierName.toLowerCase()) continue;
+
+    var desc = String(aoqData[i][4] || '').trim().toLowerCase();
+    if (desc) {
+      selectedPrices[desc] = {
+        unitCost:  Number(aoqData[i][5] || 0),
+        totalCost: Number(aoqData[i][6] || 0)
+      };
+    }
+    if (!supplierNameOut) {
+      supplierNameOut = rowSupplier;
+      supplierAddress = String(aoqData[i][2] || '').trim();
+      supplierTin     = String(aoqData[i][3] || '').trim();
+      poNo            = String(aoqData[i][9] || '').trim();
     }
   }
 
   if (Object.keys(selectedPrices).length === 0) {
-    return "No selected items found for PR No.: " + prNo;
+    return "No selected items found for PR No.: " + prNo + (supplierName ? " and supplier: " + supplierName : "");
   }
 
   // Read item details from SUMMARY, using AOQ_SupplierData pricing
@@ -1430,7 +1421,7 @@ function writeToPOSheet(prNo) {
         tin:             summaryData[i][15],
         modeProcurement: summaryData[i][16],
         placeDelivery:   summaryData[i][17],
-        dateDelivery:    formattedD
+        dateDelivery:    formatted
       });
     }
   }
@@ -1444,13 +1435,20 @@ function writeToPOSheet(prNo) {
 
   var first = items[0];
 
-  poSheet.getRange("A10").setValue("Supplier: " + first.supplier || "");
-  poSheet.getRange("A11").setValue("Address: " + first.supplierAddress || "");
-  poSheet.getRange("A12").setValue("Tin: " + first.tin || "");
+  poSheet.getRange("A10").setValue("Supplier: " + (supplierNameOut || first.supplier || ""));
+  poSheet.getRange("A11").setValue("Address: " + (supplierAddress || first.supplierAddress || ""));
+  poSheet.getRange("A12").setValue("Tin: " + (supplierTin || first.tin || ""));
+
+  if (poNo) {
+    poSheet.getRange("F10").setValue(poNo);
+  } else {
+    poNo = getNextUniquePONo(prNo);
+    poSheet.getRange("F10").setValue(poNo);
+  }
 
   poSheet.getRange("E11").setValue("Date: " + first.date);
 
-  poSheet.getRange("E12").setValue("Mode of Procurement: " + first.modeProcurement || "");
+  poSheet.getRange("E12").setValue("Mode of Procurement: " + (first.modeProcurement || ""));
 
   poSheet.getRange("A16").setValue("Place of Delivery: " + first.placeDelivery || "");
   if (first.dateDelivery) {
@@ -1538,7 +1536,7 @@ function saveSupplierData(supplierRows) {
   if (supplierName) {
     poNo = getNextUniquePONo(prNo);
   }
-  try { writeToPOSheet(prNo); } catch(e) { Logger.log("writeToPOSheet error: " + e); }
+  try { writeToPOSheet(prNo, supplierName); } catch(e) { Logger.log("writeToPOSheet error: " + e); }
 
   return JSON.stringify({ message: updatedCount + " supplier item(s) saved Successfully! PO sheet updated.", poNo: poNo });
 }
@@ -1556,6 +1554,33 @@ function ensureAOQSupplierDataSheet() {
   sheet.appendRow(["PR No.", "Supplier Name", "Supplier Address", "TIN", "Item Description", "Unit Cost", "Total Cost", "Selected", "Col Idx", "PO No."]);
   sheet.setFrozenRows(1);
   return sheet;
+}
+
+/* =================================
+   UPDATE SUPPLIER SELECTION
+   Called when a checkbox is toggled
+   in the AOQ supplier screen. Updates
+   the SELECTED column in real-time.
+================================= */
+function updateSupplierSelection(prNo, colIdx, itemDescription, selected) {
+  const sheet = ensureAOQSupplierDataSheet();
+  const data = sheet.getDataRange().getValues();
+  const nInput = cleanPrNo(prNo).toLowerCase();
+  const targetDesc = String(itemDescription || '').trim().toLowerCase();
+  const targetColIdx = Number(colIdx);
+
+  for (let i = 1; i < data.length; i++) {
+    const rowPrNo = cleanPrNo(String(data[i][0] || '')).toLowerCase();
+    const rowDesc = String(data[i][4] || '').trim().toLowerCase();
+    const rowColIdx = Number(data[i][8]);
+
+    if (rowPrNo === nInput && rowDesc === targetDesc && rowColIdx === targetColIdx) {
+      sheet.getRange(i + 1, 8).setValue(selected ? 'TRUE' : 'FALSE');
+      break;
+    }
+  }
+
+  SpreadsheetApp.flush();
 }
 
 /**
@@ -1599,12 +1624,22 @@ function saveFullSupplierData(prNo, allDataJson) {
   var newRows = [];
   var allSuppliers = allData.suppliers || [];
   var supplierRows = allData.supplierRows || [];
-  var supplierPONos = allData.supplierPONos || {};
 
-  // Build a lookup: prNo+itemDescription -> { unitCost, totalCost, supplier, supplierAddress, selected }
+  // Generate unique PO numbers for all suppliers in one batch
+  var reserved = {};
+  var supplierPONos = {};
+  for (var s = 0; s < allSuppliers.length; s++) {
+    var sup = allSuppliers[s];
+    if (!sup.name) continue;
+    var poNo = getNextUniquePONo(prNo, reserved);
+    reserved[poNo] = true;
+    supplierPONos[sup.name] = poNo;
+  }
+
+  // Build a lookup: prNo+supplier+itemDescription -> { unitCost, totalCost, supplier, supplierAddress, selected }
   var rowLookup = {};
   supplierRows.forEach(function(sr) {
-    var key = (cleanPrNo(sr.prNo).toLowerCase() + '|' + (sr.itemDescription || '').trim().toLowerCase());
+    var key = (cleanPrNo(sr.prNo).toLowerCase() + '|' + (sr.supplier || '').trim().toLowerCase() + '|' + (sr.itemDescription || '').trim().toLowerCase());
     rowLookup[key] = sr;
   });
 
@@ -1614,7 +1649,7 @@ function saveFullSupplierData(prNo, allDataJson) {
     var poNo = supplierPONos[sup.name] || '';
     for (var i = 0; i < (sup.items || []).length; i++) {
       var item = sup.items[i];
-      var lookupKey = (cleanPrNo(prNo).toLowerCase() + '|' + (item.itemDescription || '').trim().toLowerCase());
+      var lookupKey = (cleanPrNo(prNo).toLowerCase() + '|' + (sup.name || '').trim().toLowerCase() + '|' + (item.itemDescription || '').trim().toLowerCase());
       var rowData = rowLookup[lookupKey] || {};
       newRows.push([
         prNo,
@@ -1882,6 +1917,11 @@ function writeToPRSheet(prNo) {
   if (first.purpose) {
     prSheet.getRange(43, 1).setValue("Purpose: " + first.purpose);
   }
+  // Clear row 44–45, set Title at row 46
+  prSheet.getRange(45, 1, 1, 6).clearContent();
+  if (first.title) {
+    prSheet.getRange(46, 1).setValue("Title: " + first.title);
+  }
 
   // Grand Total formula — SUM of col G (Total Cost) across all written item rows
   var lastDataRow    = DATA_START_ROW + items.length - 1;
@@ -1889,4 +1929,31 @@ function writeToPRSheet(prNo) {
   grandTotalCell.setFormula("=SUM(G" + DATA_START_ROW + ":G" + lastDataRow + ")");
 
   return "PR Sheet populated with " + items.length + " item(s) for PR No. " + prNo;
+}
+
+/* =================================
+   GET SHEET EXPORT URL
+   Returns a Google Sheets export URL for the given sheet tab and format.
+   Formats: pdf, xlsx, ods, csv, tsv
+================================= */
+function getSheetExportUrl(sheetName, format) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      var allSheets = ss.getSheets();
+      for (var i = 0; i < allSheets.length; i++) {
+        if (allSheets[i].getName().toLowerCase() === sheetName.toLowerCase()) {
+          sheet = allSheets[i];
+          break;
+        }
+      }
+    }
+    if (!sheet) return null;
+    var ssId = ss.getId();
+    var gid = sheet.getSheetId();
+    return "https://docs.google.com/spreadsheets/d/" + ssId + "/export?format=" + format + "&gid=" + gid;
+  } catch (e) {
+    return null;
+  }
 }

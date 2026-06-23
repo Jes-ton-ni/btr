@@ -726,6 +726,44 @@
     }
     .oc-icon  { font-size: 36px; line-height: 1; }
     .oc-label { font-size: 14px; font-weight: bold; color: #0b3d6b; line-height: 1.3; }
+
+    /* ── MODAL DOWNLOAD TOOLBAR ── */
+    .modal-download-bar {
+      background: #e8eef6;
+      padding: 14px 26px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-top: 2px solid #c5d5e8;
+      border-radius: 0 0 14px 14px;
+      flex-shrink: 0;
+    }
+    .modal-download-bar .dl-label {
+      font-weight: bold;
+      font-size: 15px;
+      color: #0b3d6b;
+      white-space: nowrap;
+    }
+    .modal-download-bar select {
+      padding: 8px 12px;
+      border: 1px solid #b0c4de;
+      border-radius: 6px;
+      font-size: 14px;
+      background: #fff;
+      min-width: 170px;
+    }
+    .modal-download-bar .download-btn {
+      background: #2e7d32;
+      color: #fff;
+      border: none;
+      padding: 9px 22px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+      margin-left: auto;
+    }
+    .modal-download-bar .download-btn:hover { background: #1b5e20; }
   </style>
 </head>
 <body>
@@ -806,7 +844,7 @@
     <div class="po-sub-title">📁 Select Other Form Type</div>
     <div id="otherFormsGrid" class="other-forms-grid">
       <div class="other-card" onclick="openOtherForm('Disbursement Voucher')">
-        <div class="oc-icon">💰</div>
+        <div class="oc-icon">📤</div>
         <div class="oc-label">Disbursement Voucher</div>
       </div>
       <div class="other-card" onclick="openOtherForm('Inspection and Acceptance Form')">
@@ -838,15 +876,15 @@
         <div class="oc-label">Technical Specs</div>
       </div>
       <div class="other-card" onclick="openOtherForm('Reso-to-Award')">
-        <div class="oc-icon">🏆</div>
+        <div class="oc-icon">🏛️</div>
         <div class="oc-label">Reso-to-Award</div>
       </div>
       <div class="other-card" onclick="openOtherForm('Notice of Award')">
-        <div class="oc-icon">📢</div>
+        <div class="oc-icon">✉️</div>
         <div class="oc-label">Notice of Award</div>
       </div>
       <div class="other-card" onclick="openOtherForm('Notice to Proceed')">
-        <div class="oc-icon">🚀</div>
+        <div class="oc-icon">➡️ </div>
         <div class="oc-label">Notice to Proceed</div>
       </div>
       <div class="other-card" onclick="openOtherForm('Obligation Request Status')">
@@ -866,8 +904,16 @@
         <div class="oc-label">Post-Inspection Report</div>
       </div>
       <div class="other-card" onclick="openOtherForm('Waste Material Report')">
-        <div class="oc-icon">🗑️</div>
+        <div class="oc-icon">📦</div>
         <div class="oc-label">Waste Material Report</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Performance Evaluation')">
+        <div class="oc-icon">📈</div>
+        <div class="oc-label">Performance Evaluation</div>
+      </div>
+      <div class="other-card" onclick="openOtherForm('Satisfactory Performance')">
+        <div class="oc-icon">⭐</div>
+        <div class="oc-label">Satisfactory Performance</div>
       </div>
     </div>
   </div>
@@ -969,10 +1015,17 @@
         <label>Purpose</label>
         <select id="pr_purpose" onchange="toggleOtherPurpose('pr_purpose','pr_otherPurpose')">
         <option value="">-- Select Purpose --</option>
-          <option>Procurement of supplies and delivery of office materials.</option><option>Procurement of Office Supplies and Delivery of Goods</option><option>Procurement of Various Supplies and Materials</option>
-          <option>Procurement of Supplies and Delivery of Equipment</option><option>Others</option>
+          <option>Procurement of office supplies and materials for official use.</option><option>Procurement of Office Supplies and Delivery of Goods</option>
+          <option>Others</option>
         </select>
         <input type="text" id="pr_otherPurpose" placeholder="Specify Purpose" style="display:none;margin-top:6px;">
+        <label>Title</label>
+        <select id="pr_title" onchange="toggleOtherTitle('pr_title','pr_otherTitle')">
+        <option value="">-- Select Title --</option>
+          <option>Procurement of office supplies and materials for official use.</option><option>Procurement of Office Supplies and Delivery of Goods</option>
+          <option>Others</option>
+        </select>
+        <input type="text" id="pr_otherTitle" placeholder="Specify Title" style="display:none;margin-top:6px;">
       </div>
     </div>
 
@@ -1083,11 +1136,10 @@
       </div>
     </div>
     <div class="btn-area">
-      <button class="action" onclick="submitForm()">ADD ITEM</button>
       <!-- FIX: VIEW FORM now opens only the AOQ form view -->
+      <button class="action success" id="aoq_updateBtn" onclick="updateItem()">UPDATE</button>
       <button class="action" onclick="openAOQFormView()">📋 PREVIEW AOQ</button>
       <button class="action" style="background:#2196f3;" onclick="openSupplierScreen()">🏭 ADD SUPPLIER</button>
-      <button class="action success" id="aoq_updateBtn" onclick="updateItem()">UPDATE</button>
       <button class="action danger"  id="aoq_deleteBtn" onclick="deleteItem()">DELETE</button>
       <button class="action neutral" onclick="clearForm()">CLEAR</button>
     </div>
@@ -1165,10 +1217,9 @@
         </div>
     </div>
     <div class="btn-area">
-      <button class="action" onclick="submitForm()">ADD ITEM</button>
       <!-- FIX: VIEW FORM opens only the RFQ form view -->
-      <button class="action" onclick="openRFQFormView()">📋 VIEW RFQ FORM</button>
       <button class="action success" id="rfq_updateBtn" onclick="updateItem()">UPDATE</button>
+      <button class="action" onclick="openRFQFormView()">📋 VIEW RFQ FORM</button>
       <button class="action danger"  id="rfq_deleteBtn" onclick="deleteItem()">DELETE</button>
       <button class="action neutral" onclick="clearForm()">CLEAR</button>
     </div>
@@ -1231,6 +1282,8 @@
 
       <div class="card">
         <div class="section">PURCHASE ORDER</div>
+        <label>PO No.</label>
+        <input type="text" id="po_poNo" readonly style="background:#f0f0f0;">
         <label>Supplier</label>
         <input type="text" id="po_supplier" placeholder="Enter supplier/company name">
         <label>Supplier Address</label>
@@ -1241,15 +1294,16 @@
         <input type="text" id="po_modeProcurement" placeholder="e.g. Small Value Procurement">
         <label>Place of Delivery</label>
         <textarea id="po_placeDelivery" placeholder="Enter delivery location"></textarea>
+        <label>Delivery Term</label>
+        <textarea id="po_deliveryTerm" placeholder="Enter Delivery Term"></textarea>
         <label>Date of Delivery</label>
         <input type="date" id="po_dateDelivery">
       </div>
     </div>
     <div class="btn-area">
-      <button class="action" onclick="submitForm()">ADD ITEM</button>
       <!-- FIX: VIEW FORM opens only the PO form view -->
-      <button class="action" onclick="openPOFormView()">📋 VIEW PO FORM</button>
       <button class="action success" id="po_updateBtn" onclick="updateItem()">UPDATE</button>
+      <button class="action" onclick="openPOFormView()">📋 VIEW PO FORM</button>
       <button class="action danger"  id="po_deleteBtn" onclick="deleteItem()">DELETE</button>
       <button class="action neutral" onclick="clearForm()">CLEAR</button>
     </div>
@@ -1326,6 +1380,14 @@
       <button class="modal-close" onclick="closeModal()">✕ Close</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
+    <div class="modal-download-bar" id="downloadBar" style="display:none;">
+      <span class="dl-label">Download Template:</span>
+      <select id="downloadFormat">
+        <option value="pdf">PDF Document (.pdf)</option>
+        <option value="xlsx" selected>Excel Workbook (.xlsx)</option>
+      </select>
+      <button class="download-btn" onclick="downloadForm()">DOWNLOAD</button>
+    </div>
   </div>
 </div>
 
@@ -1334,6 +1396,7 @@
 
   var STANDARD_UNITS = ["Pieces","Lot","Pack","Dozen","Gallon","Kg","Liter","Case"];
   var STANDARD_PURPOSES = ["For use of BTr ROV","For official use","Office supplies for official use","Supplies/Materials for Establishment"];
+  var STANDARD_TITLES = ["For use of BTr ROV","For official use","Office supplies for official use","Supplies/Materials for Establishment"];
   var STANDARD_DELIVERY_TERMS = ["Within 30 days","FOB Destination","n/30"];
   var STANDARD_PAYMENT_TERMS = ["Within 30 days","Within 30 days upon receipt of items","n/20","within 30 days upon receipt of items"];
   var STANDARD_DELIVERY_PERIODS = ["Within seven days from receipt of the Purchase Order.","Within 30 days"];
@@ -1352,6 +1415,8 @@
   var _officeSetCount = 0;
   // Version counter to invalidate stale auto-sequence callbacks
   var _prNoGenVer = 0;
+  // Tracks the current sheet name for the download bar in the form view modal
+  var _currentSheetName = '';
 
   /* ─── TOTAL COST FORMULA ─── */
   function updateTotalCostDisplay(prefix) {
@@ -1395,22 +1460,24 @@
   // To assign a URL to a form, paste the link as the value below.
   // Leave the value as '' if the form has no link yet.
   var otherFormLinks = {
-    'Disbursement Voucher':                    'https://docs.google.com/spreadsheets/d/1IlAFWXbbT8vF1IUJMtn7dqrGktlzkSeM/edit?gid=859319811#gid=859319811',
-    'Inspection and Acceptance Form':          'https://docs.google.com/spreadsheets/d/1YNVX9-vWLLC-CQoAUdON_CqpmmETwxMF/edit?gid=844810772#gid=844810772',
-    'Requisition and Issuance Report':         'https://docs.google.com/spreadsheets/d/1wPTCm9ukzgrj9hWx6YXkx-foHhzUteQi/edit?gid=1193823077#gid=1193823077',
-    'Inventory Custodian Slip':                'https://docs.google.com/spreadsheets/d/1hFbew3M4FDiaipj8jaQ8DZgP1WBP5ad0/edit?gid=105490678#gid=105490678',
-    'Property Acknowledgement Report':           'hhttps://docs.google.com/spreadsheets/d/1IDV7lHCxaORzeSl53zjfo6V136bYE6Y2/edit?gid=2054921642#gid=2054921642',
-    'Report of Supplies and Materials Issued': 'https://docs.google.com/spreadsheets/d/16ugqPUpVSGiHp9Bi1SNHzAG8qVzcN_jx/edit?gid=2021223564#gid=2021223564',
-    'Market Scoping':                          'https://docs.google.com/document/d/1iVggq7zeW3XcFY8yBdk0zi7ezPmARErq/edit',
-    'Technical Specs':                         'https://docs.google.com/document/d/11hMMa2lX3RyBPHdG060LleYece5aJJTw/edit',
-    'Reso-to-Award':                           'https://docs.google.com/document/d/13Aiten1gD548v2kyCe0pSd8ViEnVKO5D/edit',
-    'Notice of Award':                         'https://docs.google.com/document/d/11yit0gFvNY1SEWNMCR6aLHF9JzoJEvS-/edit',
-    'Notice to Proceed':                       'https://docs.google.com/document/d/14bZe_JE4p6DDAj_hGFkzSg_xyYnjeFmJ/edit',
-    'Obligation Request Status':               'https://docs.google.com/spreadsheets/d/1C8QxJ5lZeHYz0kRIQHbjUikVFMNORBZB/edit?gid=1362629660#gid=1362629660',
-    'Recommending Approval of Extension':      'https://docs.google.com/document/d/1ypJOKsCauEG5ugspGv6FD3jRFfcVLnD2/edit',
-    'Pre-Inspection Report':                   'https://docs.google.com/spreadsheets/d/1I63oUthhEdWBDvk00lYSvrIWbialxhiN/edit?gid=1911299572#gid=1911299572',
-    'Post-Inspection Report':                  'https://docs.google.com/spreadsheets/d/1P5sCuh0BJGtqBQvluYEcE3xq_81XSHY5/edit?gid=2058562933#gid=2058562933',
-    'Waste Material Report':                   'https://docs.google.com/spreadsheets/d/1ffJubaa1ZxT45aJoXRZDOQDX7_IasqoA/edit?gid=1507833371#gid=1507833371'
+    'Disbursement Voucher':                    'https://docs.google.com/spreadsheets/d/1BBrSF56y0tW6OAiCcbsbj4PAF3_MNrOI/edit?gid=859319811#gid=859319811',
+    'Inspection and Acceptance Form':          'https://docs.google.com/spreadsheets/d/1tcS7w6JtgXvSfWWpOIHfcfLwma60-dUR/edit?gid=844810772#gid=844810772',
+    'Requisition and Issuance Report':         'https://docs.google.com/spreadsheets/d/1WvMtO_Ut7S_6P9CUSpT8JTvbG_rNcmUW/edit?gid=1193823077#gid=1193823077',
+    'Inventory Custodian Slip':                'https://docs.google.com/spreadsheets/d/1eq20iNqJ1hZaXFAVQO4Fonheb5Olavig/edit?gid=105490678#gid=105490678',
+    'Property Acknowledgement Report':         'https://docs.google.com/spreadsheets/d/1dNyYOwBmL-y341SL0RFzgEMXsfNMtR5Y/edit?gid=2054921642#gid=2054921642',
+    'Report of Supplies and Materials Issued': 'https://docs.google.com/spreadsheets/d/14VAyzze3L6fbO8LeNdfBOcGrenLzGn3o/edit?gid=2021223564#gid=2021223564',
+    'Market Scoping':                          'https://docs.google.com/document/d/1zc6iPb1Fi2yVZQU6MMU15ZyXGIGYZQYC/edita',
+    'Technical Specs':                         'https://docs.google.com/document/d/1Xx967o7q3P1uhg8t4covoVJZ12lnCKTw/edit',
+    'Reso-to-Award':                           'https://docs.google.com/document/d/1dr-HcZQ8g48xqtvWAHjOgVAVNpw7hdH2/edit',
+    'Notice of Award':                         'https://docs.google.com/document/d/1A4Trhn68Qx1XyHhE7fB2-wfl4tJkr6Gw/edit',
+    'Notice to Proceed':                       'https://docs.google.com/document/d/1zEz1ku7rEQbeuh3ThBQaVGqgxyc6QAhg/edit',
+    'Obligation Request Status':               'https://docs.google.com/spreadsheets/d/13Q82-QtiAQHiBJ4djR3CDT04_A_HC3-K/edit?gid=1362629660#gid=1362629660',
+    'Recommending Approval of Extension':      'https://docs.google.com/document/d/13BiwuppJME4voCRt6LBwb3FRwbYsyk5E/edit',
+    'Pre-Inspection Report':                   'https://docs.google.com/spreadsheets/d/1Bt_fSDCA2HmtPkPx03q48fFYbNmXSbYs/edit?gid=1911299572#gid=1911299572',
+    'Post-Inspection Report':                  'https://docs.google.com/spreadsheets/d/1d3d8jCuUIjtEiiw_gDRhOqkMa8M4i2o5/edit?gid=2058562933#gid=2058562933',
+    'Waste Material Report':                   'https://docs.google.com/spreadsheets/d/1GVisb2bB3BVKup43IA29BkeJnmvWY68t/edit?gid=1507833371#gid=1507833371',
+    'Performance Evaluation':                  'https://docs.google.com/document/d/1ZkJS6AlrhRCI4bZALN7-aYrUWBulu5qX/edit',
+    'Satisfactory Performance':                'https://docs.google.com/document/d/1IDpqeyYTF5nJGqbO2tYvGRlo0-Ky9Mwv/edit'
   };
 
   function openOtherForm(formName) {
@@ -1553,6 +1620,7 @@
       quantity:        getVal('quantity'),
       unitCost:        getVal('unitCost'),
       purpose:         getOtherVal('purpose', 'otherPurpose'),
+      title:           getOtherVal('title', 'otherTitle'),
       deliveryTerm:    getOtherVal('deliveryTerm', 'otherDeliveryTerm'),
       paymentTerm:     getOtherVal('paymentTerm', 'otherPaymentTerm'),
       deliveryPeriod:  getOtherVal('deliveryPeriod', 'otherDeliveryPeriod'),
@@ -1649,6 +1717,18 @@
       } else {
         purposeEl.value = 'Others';
         if (purposeOtherEl) { purposeOtherEl.style.display = 'block'; purposeOtherEl.value = data.purpose || ''; }
+      }
+    }
+
+    var titleEl       = document.getElementById(p + 'title');
+    var titleOtherEl  = document.getElementById(p + 'otherTitle');
+    if (titleEl && titleEl.tagName === 'SELECT') {
+      if (STANDARD_TITLES.indexOf(data.title) !== -1 || !data.title) {
+        titleEl.value = data.title || '';
+        if (titleOtherEl) { titleOtherEl.style.display = 'none'; titleOtherEl.value = ''; }
+      } else {
+        titleEl.value = 'Others';
+        if (titleOtherEl) { titleOtherEl.style.display = 'block'; titleOtherEl.value = data.title || ''; }
       }
     }
 
@@ -1903,6 +1983,7 @@
       unitCost:        cost,
       totalCost:       total,
       purpose:         data.purpose,
+      title:           data.title,
       deliveryTerm:    data.deliveryTerm,
       paymentTerm:     data.paymentTerm,
       deliveryPeriod:  data.deliveryPeriod,
@@ -1977,7 +2058,11 @@
           if (type === 'AOQ') {
             safeWriteSheet('writeToAOQSheetWithExistingData', 'AOQ');
           } else if (type === 'PO') {
-            safeWriteSheet('writeToPOSheet', 'PO');
+            var poSupplier = window._currentSupplierName || '';
+            google.script.run
+              .withSuccessHandler(function(m) { console.log("PO Sheet write:", m); })
+              .withFailureHandler(function(e) { console.error("PO Sheet write failed:", e.message); })
+              .writeToPOSheet(prNo, poSupplier);
           } else if (type === 'RFQ') {
             safeWriteSheet('writeToRFQSheet', 'RFQ');
           }
@@ -2064,10 +2149,11 @@
         .withFailureHandler(function(e) { console.error("RFQ write failed:", e.message); doSearch(); })
         .writeToRFQSheet(prNo);
     } else if (type === 'PO') {
+      var poSupplier = window._currentSupplierName || '';
       google.script.run
         .withSuccessHandler(function(m) { console.log("PO Sheet write:", m); doSearch(); })
         .withFailureHandler(function(e) { console.error("PO write failed:", e.message); doSearch(); })
-        .writeToPOSheet(prNo);
+        .writeToPOSheet(prNo, poSupplier);
     } else if (type === 'PR') {
       google.script.run
         .withSuccessHandler(function(m) { console.log("PR Sheet write:", m); doSearch(); })
@@ -2215,6 +2301,7 @@
     setVal('supplier', group.supplier);
     setVal('supplierAddress', group.supplierAddress);
     setVal('tin', group.tin);
+    setVal('poNo', group.poNo || '');
     setVal('modeProcurement', group.modeProcurement);
     setVal('placeDelivery', group.placeDelivery);
     setVal('dateDelivery', group.dateDelivery);
@@ -2254,6 +2341,7 @@
     setVal('supplier', window._currentSupplierGroup.supplier);
     setVal('supplierAddress', window._currentSupplierGroup.supplierAddress);
     setVal('tin', window._currentSupplierGroup.tin);
+    setVal('poNo', window._currentSupplierGroup.poNo || '');
     setVal('modeProcurement', window._currentSupplierGroup.modeProcurement);
     setVal('placeDelivery', window._currentSupplierGroup.placeDelivery);
     setVal('dateDelivery', window._currentSupplierGroup.dateDelivery);
@@ -2470,10 +2558,27 @@
     document.getElementById('modalBody').innerHTML = '<p style="text-align:center;color:#999;">Loading…</p>';
     document.getElementById('prFormModal').classList.add('open');
 
+    function renderPOView(items) {
+      var selectedSupplier = window._currentSupplierName || '';
+      var filtered = items;
+      if (selectedSupplier) {
+        filtered = items.filter(function(item) {
+          return (item.supplier || '').toLowerCase() === selectedSupplier.toLowerCase();
+        });
+      }
+      if (!filtered || filtered.length === 0) {
+        document.getElementById('modalBody').innerHTML =
+          '<p style="color:#b71c1c;text-align:center;">No PO data found for PR No. ' + prNo
+          + (selectedSupplier ? ' and supplier: ' + selectedSupplier : '') + '</p>';
+        return;
+      }
+      renderGenericFormView(filtered, 'PO', 'Purchase Order');
+    }
+
     // Use locally cached search results if available (avoids stale server queries after update)
     var cached = getItemsFromSearchResults(prNo);
     if (cached) {
-      renderGenericFormView(cached, 'PO', 'Purchase Order');
+      renderPOView(cached);
       return;
     }
 
@@ -2485,7 +2590,7 @@
           return;
         }
         searchResults = results;
-        renderGenericFormView(results, 'PO', 'Purchase Order');
+        renderPOView(results);
       })
       .withFailureHandler(function(err) {
         document.getElementById('modalBody').innerHTML =
@@ -2553,6 +2658,9 @@
     if (r.purpose) {
       html += '<div class="pr-purpose-box"><strong>Purpose:</strong> ' + r.purpose + '</div>';
     }
+    if (r.title) {
+      html += '<div class="pr-purpose-box"><strong>Title:</strong> ' + r.title + '</div>';
+    }
 
     html += '<div class="pr-sig-row">'
       + '<div class="pr-sig-block">'
@@ -2577,6 +2685,8 @@
 
     html += '</div>';
     document.getElementById('modalBody').innerHTML = html;
+    _currentSheetName = 'Purchase Request';
+    document.getElementById('downloadBar').style.display = 'flex';
   }
 
   /* ─── FIX: GENERIC FORM VIEW (AOQ / RFQ / PO) ─── */
@@ -2694,6 +2804,9 @@
 
     html += '</div>';
     document.getElementById('modalBody').innerHTML = html;
+    var sheetNameMap = { AOQ: 'Abstract of Qoutations', RFQ: 'RFQ', PO: 'Purchase Order' };
+    _currentSheetName = sheetNameMap[type] || 'Purchase Request';
+    document.getElementById('downloadBar').style.display = 'flex';
   }
 
   /* ─── RENDER AOQ FORM VIEW — per-supplier pricing sections ─── */
@@ -2814,6 +2927,8 @@
     html += '</div>';
 
     document.getElementById('modalBody').innerHTML = html;
+    _currentSheetName = 'Abstract of Qoutations';
+    document.getElementById('downloadBar').style.display = 'flex';
   }
 
   function navigateToSheet(sheetName, prNo) {
@@ -2886,6 +3001,36 @@
 
   function closeModal() {
     document.getElementById('prFormModal').classList.remove('open');
+    document.getElementById('downloadBar').style.display = 'none';
+    _currentSheetName = '';
+    if (document.getElementById('screenSupplier').classList.contains('active')) {
+      closeSupplierScreen();
+    }
+  }
+
+  function downloadForm() {
+    if (!_currentSheetName) { alert('No form loaded to download.'); return; }
+    var prNo = document.querySelector('#modalTitle') ? document.querySelector('#modalTitle').textContent.split('— ')[1] : '';
+    if (!prNo) {
+      // Fallback: try to get PR No. from the form fields
+      prNo = getVal('prNo') || document.getElementById('searchPR').value || '';
+    }
+    var format = document.getElementById('downloadFormat').value;
+    document.getElementById('downloadBar').querySelector('.download-btn').textContent = 'DOWNLOADING...';
+    google.script.run
+      .withSuccessHandler(function(url) {
+        document.getElementById('downloadBar').querySelector('.download-btn').textContent = 'DOWNLOAD';
+        if (url) {
+          window.open(url, '_blank');
+        } else {
+          alert('Could not generate download URL. Make sure the template sheet "' + _currentSheetName + '" exists in the spreadsheet.');
+        }
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('downloadBar').querySelector('.download-btn').textContent = 'DOWNLOAD';
+        alert('Download failed: ' + err.message);
+      })
+      .getSheetExportUrl(_currentSheetName, format);
   }
 
   document.getElementById('prFormModal').addEventListener('click', function(e) {
@@ -2988,10 +3133,11 @@
                   .withFailureHandler(function(e) { console.error("RFQ write failed:", e.message); doReSearch(); })
                   .writeToRFQSheet(prNo);
               } else if (type === 'PO') {
+                var poSupplier = window._currentSupplierName || '';
                 google.script.run
                   .withSuccessHandler(function(m) { doReSearch(); })
                   .withFailureHandler(function(e) { console.error("PO write failed:", e.message); doReSearch(); })
-                  .writeToPOSheet(prNo);
+                  .writeToPOSheet(prNo, poSupplier);
               } else if (type === 'PR') {
                 google.script.run
                   .withSuccessHandler(function(m) { doReSearch(); })
@@ -3112,7 +3258,7 @@
 
   function clearItemFields() {
     var p = getPrefix();
-    ['itemDescription','quantity','unitCost','purpose'].forEach(function(f) {
+    ['itemDescription','quantity','unitCost','purpose','title'].forEach(function(f) {
       var el = document.getElementById(p + f);
       if (el) el.value = '';
     });
@@ -3323,7 +3469,7 @@
         html += '<td class="sup-chk" style="text-align:center;vertical-align:middle;">'
           + '<input type="checkbox" id="supChk_' + idx + '_' + s + '" class="item-chk"'
           + (prevChk ? ' checked' : '')
-          + ' onchange="recomputeRow(' + idx + ',' + n + ')">'
+          + ' onchange="onSupplierCheckChange(' + idx + ',' + s + ',' + n + ')">'
           + '</td>'
           + '<td class="sup-price">'
           + '<input type="number" id="supPrice_' + idx + '_' + s + '" min="0" step="0.01"'
@@ -3390,6 +3536,20 @@
 
     recomputeGrandTotals(n);
     highlightBest(n);
+  }
+
+  /* ─── ON SUPPLIER CHECKBOX CHANGE ─── */
+  function onSupplierCheckChange(itemIdx, supIdx, n) {
+    recomputeRow(itemIdx, n);
+
+    var chk = document.getElementById('supChk_' + itemIdx + '_' + supIdx);
+    var item = supplierRFQItems[itemIdx];
+    if (!chk || !item || !supplierPrNo) return;
+
+    google.script.run
+      .withSuccessHandler(function(msg) { console.log(msg); })
+      .withFailureHandler(function(err) { console.error(err.message); })
+      .updateSupplierSelection(supplierPrNo, supIdx, item.itemDescription, chk.checked);
   }
 
   /* ─── RECOMPUTE grand totals per supplier column ─── */
@@ -3640,7 +3800,46 @@
             document.getElementById('supplierSavePrInfo').textContent = 'PR No.: ' + supplierPrNo;
             document.getElementById('supplierSavePrNo').textContent = supplierPrNo;
             document.getElementById('supplierSavePoInfo').textContent = '';
-            document.getElementById('supplierSaveSuccess').style.display = 'block';
+
+            document.getElementById('modalTitle').textContent = '\u{1F4CA} Abstract of Quotations \u2014 ' + supplierPrNo;
+            document.getElementById('modalBody').innerHTML = '<p style="text-align:center;color:#999;">Loading\u2026</p>';
+            document.getElementById('prFormModal').classList.add('open');
+
+            google.script.run
+              .withSuccessHandler(function(results) {
+                if (!results || results.length === 0) {
+                  document.getElementById('modalBody').innerHTML =
+                    '<div style="text-align:center;padding:40px;">'
+                    + '<div style="font-size:48px;">\u2705</div>'
+                    + '<div style="font-size:18px;font-weight:bold;color:#2e7d32;margin:8px 0;">Supplier quotations saved successfully!</div>'
+                    + '<div style="font-size:14px;color:#555;">PR No.: ' + supplierPrNo + '</div>'
+                    + '</div>';
+                  _currentSheetName = 'Abstract of Qoutations';
+                  document.getElementById('downloadBar').style.display = 'flex';
+                  return;
+                }
+                google.script.run
+                  .withSuccessHandler(function(pricingJson) {
+                    var pricingData = { suppliers: [] };
+                    try { var parsed = JSON.parse(pricingJson); if (parsed && parsed.suppliers) pricingData = parsed; } catch(e) {}
+                    renderAOQFormView(results, pricingData);
+                  })
+                  .withFailureHandler(function() {
+                    renderAOQFormView(results, { suppliers: [] });
+                  })
+                  .loadSupplierPricing(supplierPrNo);
+              })
+              .withFailureHandler(function() {
+                document.getElementById('modalBody').innerHTML =
+                  '<div style="text-align:center;padding:40px;">'
+                  + '<div style="font-size:48px;">\u2705</div>'
+                  + '<div style="font-size:18px;font-weight:bold;color:#2e7d32;margin:8px 0;">Supplier quotations saved successfully!</div>'
+                  + '<div style="font-size:14px;color:#555;">PR No.: ' + supplierPrNo + '</div>'
+                  + '</div>';
+                _currentSheetName = 'Abstract of Qoutations';
+                document.getElementById('downloadBar').style.display = 'flex';
+              })
+              .searchItem(supplierPrNo);
           })
           .withFailureHandler(function(err) {
             alert("Supplier data saved, but AOQ cells update failed: " + err.message);
@@ -3682,6 +3881,13 @@
 
   function toggleOtherPurpose(purposeId, otherId) {
     var val   = document.getElementById(purposeId).value;
+    var other = document.getElementById(otherId);
+    other.style.display = (val === 'Others') ? 'block' : 'none';
+    if (val !== 'Others') other.value = '';
+  }
+
+  function toggleOtherTitle(titleId, otherId) {
+    var val   = document.getElementById(titleId).value;
     var other = document.getElementById(otherId);
     other.style.display = (val === 'Others') ? 'block' : 'none';
     if (val !== 'Others') other.value = '';
