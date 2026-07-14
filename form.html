@@ -32,7 +32,7 @@
     /* ── TYPE SELECTOR ── */
     .type-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 18px;
       max-width: 1400px;
       margin: 0 auto 36px;
@@ -54,7 +54,7 @@
       box-shadow: 0 8px 24px rgba(21,101,192,0.25);
     }
     .type-card .tc-icon { font-size: 60px; margin-bottom: 14px; display: block; }
-    .type-card .tc-label { font-size: 32px; font-weight: bold; color: #0b3d6b; }
+    .type-card .tc-label { font-size: 32px; font-weight: bold; color: #0b3d6b; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.2; }
     .type-card .tc-desc  { font-size: 16px; color: #666; margin-top: 6px; }
 
     .po-sub-wrap {
@@ -695,6 +695,108 @@
       display: none;
     }
 
+    /* ── LOGIN SCREEN ── */
+    .login-container {
+      max-width: 440px;
+      margin: 60px auto;
+      background: #fff;
+      border-radius: 16px;
+      padding: 48px 40px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+      text-align: center;
+    }
+    .login-title-text {
+      font-size: 24px;
+      font-weight: bold;
+      color: #0b5394;
+      margin-bottom: 6px;
+    }
+    .login-subtitle {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 28px;
+    }
+    .login-error {
+      background: #ffebee;
+      color: #b71c1c;
+      padding: 10px 16px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    .login-field {
+      text-align: left;
+      margin-bottom: 18px;
+    }
+    .login-field label {
+      display: block;
+      font-weight: bold;
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .login-field input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .login-field input:focus {
+      border-color: #1565c0;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(21,101,192,0.12);
+    }
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 44px; }
+    .pwd-toggle {
+      position: absolute; right: 4px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      font-size: 20px; padding: 4px 8px; color: #999; line-height: 1;
+    }
+    .pwd-toggle:hover { color: #333; }
+
+    .login-btn {
+      width: 100%;
+      background: #0b5394;
+      color: #fff;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .login-btn:hover { background: #073763; }
+    .remember-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .remember-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #555;
+      cursor: pointer;
+      user-select: none;
+    }
+    .remember-checkbox input {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+    .login-footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #aaa;
+    }
+
     /* ── OTHER FORMS GRID (auto-fit) ── */
     .other-forms-grid {
       display: grid;
@@ -764,6 +866,145 @@
       margin-left: auto;
     }
     .modal-download-bar .download-btn:hover { background: #1b5e20; }
+
+    /* ── USER MANAGEMENT ── */
+    .user-admin-card { display: none; border-color: #e8a317; }
+    .user-admin-card:hover { border-color: #c68a12; background: #fff8e8; }
+    .user-admin-card .tc-label { font-size: 28px; }
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .users-table th {
+      background: #0b5394;
+      color: #fff;
+      padding: 12px 10px;
+      font-size: 13px;
+      text-align: left;
+    }
+    .users-table td {
+      padding: 10px;
+      font-size: 14px;
+      border-bottom: 1px solid #eee;
+    }
+    .users-table tr:hover td { background: #f5f8fc; }
+    .users-table .action-cell { white-space: nowrap; text-align: center; }
+    .users-table .action-cell button {
+      padding: 5px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .users-table .edit-btn { background: #1565c0; color: #fff; margin-right: 4px; }
+    .users-table .edit-btn:hover { background: #0d47a1; }
+    .users-table .delete-btn { background: #b71c1c; color: #fff; }
+    .users-table .delete-btn:hover { background: #7f0000; }
+    .role-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .role-badge.admin { background: #fff3cd; color: #856404; }
+    .role-badge.user  { background: #e2e3e5; color: #383d41; }
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .status-badge.active   { background: #d4edda; color: #155724; }
+    .status-badge.inactive { background: #f8d7da; color: #721c24; }
+    .user-form-modal .modal-box { max-width: 540px; }
+    .user-form-modal .modal-header { background: #e8a317; }
+    .user-form-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .user-form-row .field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .user-form-row .field label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    .user-form-row .field input,
+    .user-form-row .field select {
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .user-form-row .field input:focus,
+    .user-form-row .field select:focus {
+      border-color: #1565c0;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(21,101,192,0.1);
+    }
+    .user-form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .user-form-actions button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .user-form-actions .save-btn { background: #2e7d32; color: #fff; }
+    .user-form-actions .save-btn:hover { background: #1b5e20; }
+    .user-form-actions .cancel-btn { background: #ccc; color: #333; }
+    .user-form-actions .cancel-btn:hover { background: #aaa; }
+    .users-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .users-count { font-size: 14px; color: #555; }
+    .users-add-btn {
+      background: #e8a317;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .users-add-btn:hover { background: #c68a12; }
+    .reset-pwd-btn {
+      background: #4a148c;
+      color: #fff;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .reset-pwd-btn:hover { background: #311b92; }
+    .change-pwd-modal .modal-box { max-width: 440px; }
+    .change-pwd-header { background: #1565c0; }
+    .reset-pwd-header { background: #4a148c; }
   </style>
 </head>
 <body>
@@ -773,14 +1014,46 @@
 <input type="hidden" id="currentPoType">
 <input type="hidden" id="originalDataSnapshot">
 <input type="hidden" id="originalItemDescription">
+<input type="hidden" id="currentUser">
 
 <div class="app-title">PROCUREMENT DOCUMENT MANAGEMENT</div>
+<div style="text-align:right;padding:0 0 10px;font-size:14px;color:#555;display:flex;justify-content:flex-end;align-items:center;gap:10px;">
+  <span id="userDisplay" style="background:#e8f0fe;padding:6px 16px;border-radius:14px;font-weight:bold;display:inline-block;">&#128100; Not logged in</span>
+  <span id="logoutLink" style="display:none;cursor:pointer;color:#b71c1c;font-weight:bold;font-size:13px;" onclick="logout()">&#128682; Logout</span>
+</div>
 <br></br>
 
 <!-- ══════════════════════════════════════════
-     SCREEN 1 — SELECT FORM TYPE
+     SCREEN 0 — LOGIN
 ══════════════════════════════════════════ -->
-<div class="screen active" id="screenSelector">
+<div class="screen active" id="screenLogin">
+  <div class="login-container">
+    <div class="login-title-text">PROCUREMENT DOCUMENT MANAGEMENT</div>
+    <div class="login-subtitle">Please login to continue</div>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-field">
+      <label for="login_username">Email / Username</label>
+      <input type="text" id="login_username" placeholder="Enter email or username" onkeydown="if(event.key==='Enter') document.getElementById('login_password').focus()">
+    </div>
+    <div class="login-field">
+      <label for="login_password">Password</label>
+      <div class="password-wrap">
+        <input type="password" id="login_password" placeholder="Enter password" onkeydown="if(event.key==='Enter') doLogin()">
+        <button type="button" class="pwd-toggle" onclick="togglePasswordVisibility(this)" title="Show password">&#x1F441;</button>
+      </div>
+    </div>
+    <div class="remember-row">
+      <label class="remember-checkbox">
+        <input type="checkbox" id="rememberMe"> Remember Me
+      </label>
+    </div>
+    <button class="login-btn" onclick="doLogin()">LOGIN</button>
+  </div>
+</div>
+
+<div class="screen" id="screenSelector">
+
+  <div id="greetingSelector" style="text-align:center;font-size:28px;font-weight:bold;color:#0b5394;margin-bottom:18px;"></div>
 
   <div class="type-grid">
     <div class="type-card" onclick="selectFormType('PR')">
@@ -804,7 +1077,10 @@
      <div class="type-card" onclick="selectFormType('OTHER')">
       <div class="tc-icon">📁</div>
       <div class="tc-label">Other Forms</div>
-      <div class="tc-desc">Miscellaneous Documents</div>
+    </div>
+    <div class="type-card user-admin-card" id="adminUserCard" onclick="openUserManagement()">
+      <div class="tc-icon">👥</div>
+      <div class="tc-label">User Management</div>
     </div>
   </div>
 
@@ -963,7 +1239,6 @@
           <option>Catanduanes Provincial Office</option>
           <option>Masbate Provincial Office</option>
           <option>Sorsogon Provincial Office</option>
-          <option>Administrative</option>
         </select>
 
         <label>PR No. *</label>
@@ -1044,11 +1319,12 @@
             <th>Qty</th>
             <th>Unit Cost (₱)</th>
             <th>Total Cost (₱)</th>
+            <th>Added By</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody id="prItemsBody">
-          <tr id="prEmptyRow"><td colspan="7" class="empty-items">No items yet. Fill the form and click "+ ADD ITEM".</td></tr>
+          <tr id="prEmptyRow"><td colspan="8" class="empty-items">No items yet. Fill the form and click "+ ADD ITEM".</td></tr>
         </tbody>
       </table>
       <!-- FIX: Grand total computed from all items -->
@@ -1360,7 +1636,7 @@
       <div style="font-size:14px;color:#555;margin-bottom:6px;" id="supplierSavePrInfo">PR No.: —</div>
       <div style="font-size:13px;color:#333;margin-bottom:24px;" id="supplierSavePoInfo"></div>
       <div style="margin-bottom:12px;">
-        <button onclick="navigateToSheet('Abstract of Qoutations',supplierPrNo)"
+        <button onclick="navigateToSheet('Abstract of Quotations',supplierPrNo)"
                 style="background:#6a1b9a;color:#fff;border:none;padding:10px 24px;border-radius:6px;cursor:pointer;font-size:15px;font-weight:bold;">
           🔗 Go to Sheet — PR No. <span id="supplierSavePrNo">—</span>: 📨 AOQ ★
         </button>
@@ -1420,6 +1696,91 @@
   // Tracks the current sheet name for the download bar in the form view modal
   var _currentSheetName = '';
 
+  /* ─── SESSION MANAGEMENT ─── */
+  window._sessionUser = null;
+
+  (function initLogin() {
+    var saved = localStorage.getItem('procurement_remember');
+    if (saved) {
+      try {
+        var creds = JSON.parse(saved);
+        document.getElementById('login_username').value = creds.login || '';
+        document.getElementById('login_password').value = creds.password || '';
+        document.getElementById('rememberMe').checked = true;
+      } catch(e) {}
+    }
+  })();
+
+  function togglePasswordVisibility(btn) {
+    var pw = btn.parentElement.querySelector('input');
+    if (pw.type === 'password') {
+      pw.type = 'text';
+      btn.title = 'Hide password';
+    } else {
+      pw.type = 'password';
+      btn.title = 'Show password';
+    }
+  }
+
+  function doLogin() {
+    var username = document.getElementById('login_username').value.trim();
+    var password = document.getElementById('login_password').value;
+    var remember = document.getElementById('rememberMe').checked;
+    var errEl = document.getElementById('loginError');
+    if (!username || !password) {
+      errEl.textContent = 'Please enter email/username and password.';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (result) {
+          window._sessionUser = result;
+          document.getElementById('currentUser').value = result.username;
+          document.getElementById('userDisplay').textContent = '\u{1F464} ' + result.fullName;
+          document.getElementById('userDisplay').style.cursor = 'pointer';
+          document.getElementById('userDisplay').title = 'Click to change password';
+          document.getElementById('userDisplay').onclick = openChangePasswordModal;
+          document.getElementById('logoutLink').style.display = 'inline';
+          document.getElementById('adminUserCard').style.display = (result.role && result.role.toLowerCase() === 'admin') ? 'block' : 'none';
+          if (remember) {
+            localStorage.setItem('procurement_remember', JSON.stringify({ login: username, password: password }));
+          } else {
+            localStorage.removeItem('procurement_remember');
+          }
+          showScreen('screenSelector');
+        } else {
+          errEl.textContent = 'Invalid credentials or account is inactive.';
+          errEl.style.display = 'block';
+        }
+      })
+      .withFailureHandler(function(err) {
+        errEl.textContent = 'Login failed: ' + err.message;
+        errEl.style.display = 'block';
+      })
+      .validateLogin(username, password);
+  }
+
+  function logout() {
+    window._sessionUser = null;
+    document.getElementById('currentUser').value = '';
+    document.getElementById('login_username').value = '';
+    document.getElementById('login_password').value = '';
+    document.getElementById('userDisplay').textContent = '\u{1F464} Not logged in';
+    document.getElementById('userDisplay').style.cursor = 'default';
+    document.getElementById('userDisplay').title = '';
+    document.getElementById('userDisplay').onclick = null;
+    document.getElementById('logoutLink').style.display = 'none';
+    document.getElementById('adminUserCard').style.display = 'none';
+    document.getElementById('loginError').style.display = 'none';
+    localStorage.removeItem('procurement_remember');
+    clearForm();
+    document.getElementById('poSubPanel').classList.remove('visible');
+    document.getElementById('otherSubPanel').classList.remove('visible');
+    showScreen('screenLogin');
+  }
+
   /* ─── TOTAL COST FORMULA ─── */
   function updateTotalCostDisplay(prefix) {
     var qty  = parseFloat(document.getElementById(prefix + '_quantity').value)  || 0;
@@ -1434,6 +1795,9 @@
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
     document.getElementById(id).classList.add('active');
+    if (id === 'screenSelector' && window._sessionUser) {
+      document.getElementById('greetingSelector').textContent = 'Good day, ' + window._sessionUser.fullName + '!';
+    }
   }
 
   function selectFormType(type) {
@@ -1632,7 +1996,9 @@
       modeProcurement: getVal('modeProcurement'),
       placeDelivery:   getVal('placeDelivery'),
       dateDelivery:    getVal('dateDelivery'),
-      originalItemDescription: document.getElementById('originalItemDescription').value
+      originalItemDescription: document.getElementById('originalItemDescription').value,
+      userEmail:       document.getElementById('currentUser').value,
+      username:        window._sessionUser ? window._sessionUser.username : ''
     };
   }
 
@@ -1809,7 +2175,8 @@
         tin:             item.tin             || '',
         modeProcurement: item.modeProcurement || '',
         placeDelivery:   item.placeDelivery   || '',
-        dateDelivery:    item.dateDelivery    || ''
+        dateDelivery:    item.dateDelivery    || '',
+        userEmail:       item.userEmail       || ''
       };
     });
     pendingItems = []; // clear pending when loading existing PR
@@ -1842,7 +2209,7 @@
     var allItems = prItems.concat(pendingItems);
 
     if (allItems.length === 0) {
-      tbody.innerHTML = '<tr id="prEmptyRow"><td colspan="7" class="empty-items">No items yet. Fill the form and click "+ ADD ITEM".</td></tr>';
+      tbody.innerHTML = '<tr id="prEmptyRow"><td colspan="8" class="empty-items">No items yet. Fill the form and click "+ ADD ITEM".</td></tr>';
       if (grandEl) grandEl.textContent = 'Grand Total: ₱0.00';
       if (countEl) countEl.textContent = '0 items';
       if (saveBtn) saveBtn.style.display = 'none';
@@ -1852,22 +2219,28 @@
     // FIX: Grand total = sum of ALL items (both saved and pending)
     var grandTotal = 0;
     var html = '';
+    var currentUserEmail = document.getElementById('currentUser').value || '';
     allItems.forEach(function(item, i) {
       grandTotal += item.totalCost;
       var isPending = (i >= prItems.length); // pending items have no row number yet
       var rowLabel  = isPending ? '(unsaved)' : item.row;
       var rowClass  = isPending ? 'style="background:#fffde7;"' : '';
 
+      var userEmail = item.userEmail || '';
+      var isOwner = !isPending && userEmail && userEmail.toLowerCase() === currentUserEmail.toLowerCase();
+      var userDisplay = isPending ? '' : (isOwner ? '\u{1F464} <span style="color:#2e7d32;font-weight:bold;">You</span>' : '\u{1F464} <span style="color:#888;">' + escHtml(userEmail) + '</span>');
+
       html += '<tr ' + rowClass + ' id="itemRow_' + (isPending ? 'p' + (i - prItems.length) : item.row) + '">'
         + '<td>' + (i + 1) + (isPending ? ' <em style="color:#e65100;font-size:11px;">new</em>' : '') + '</td>'
         + '<td>' + (item.unit || '—') + '</td>'
         + '<td>' + item.itemDescription + '</td>'
         + '<td>' + item.quantity + '</td>'
-        + '<td>₱' + formatNum(item.unitCost) + '</td>'
-        + '<td class="total-cost">₱' + formatNum(item.totalCost) + '</td>'
+        + '<td>\u20b1' + formatNum(item.unitCost) + '</td>'
+        + '<td class="total-cost">\u20b1' + formatNum(item.totalCost) + '</td>'
+        + '<td>' + userDisplay + '</td>'
         + '<td>'
-        + '<button class="item-action-btn select-item" onclick="selectItemFromTable(' + i + ')">✏️ Select</button>'
-        + '<button class="item-action-btn remove" onclick="removeItemFromTable(' + i + ',' + isPending + ')">✕ Remove</button>'
+        + '<button class="item-action-btn select-item" onclick="selectItemFromTable(' + i + ')">\u270f\uFE0F Select</button>'
+        + '<button class="item-action-btn remove" onclick="removeItemFromTable(' + i + ',' + isPending + ')">\u2715 Remove</button>'
         + '</td>'
         + '</tr>';
     });
@@ -1950,7 +2323,7 @@
           }
         })
         .withFailureHandler(function(err) { alert("Delete failed: " + err.message); })
-        .deleteItem(item.row);
+        .deleteItem(item.row, window._sessionUser ? window._sessionUser.username : '');
     }
   }
 
@@ -1996,7 +2369,8 @@
       tin:             data.tin,
       modeProcurement: data.modeProcurement,
       placeDelivery:   data.placeDelivery,
-      dateDelivery:    data.dateDelivery
+      dateDelivery:    data.dateDelivery,
+      username:        window._sessionUser ? window._sessionUser.username : ''
     });
 
     renderItemsTable();
@@ -2684,7 +3058,7 @@
       + '<strong>🔗 Related Sheets for PR No. ' + r.prNo + ':</strong>&nbsp;&nbsp;'
       + '<button onclick="navigateToSheet(\'Purchase Request\',\'' + r.prNo + '\')" style="background:#0b5394;color:#fff;border:none;padding:5px 14px;border-radius:5px;cursor:pointer;margin:2px;font-size:12px;">📋 Generate Purchase Request</button>'
      /* + '<button onclick="navigateToSheet(\'RFQ\',\'' + r.prNo + '\')" style="background:#00695c;color:#fff;border:none;padding:5px 14px;border-radius:5px;cursor:pointer;margin:2px;font-size:12px;">📨 RFQ</button>'
-      + '<button onclick="navigateToSheet(\'Abstract of Qoutations\',\'' + r.prNo + '\')" style="background:#6a1b9a;color:#fff;border:none;padding:5px 14px;border-radius:5px;cursor:pointer;margin:2px;font-size:12px;">📊 Abstract of Qoutations</button>'
+      + '<button onclick="navigateToSheet(\'Abstract of Quotations\',\'' + r.prNo + '\')" style="background:#6a1b9a;color:#fff;border:none;padding:5px 14px;border-radius:5px;cursor:pointer;margin:2px;font-size:12px;">📊 Abstract of Quotations</button>'
       + '<button onclick="navigateToSheet(\'Purchase Order\',\'' + r.prNo + '\')" style="background:#c77b00;color:#fff;border:none;padding:5px 14px;border-radius:5px;cursor:pointer;margin:2px;font-size:12px;">🛒 Purchase Order</button>'
       + '</div>'; */
 
@@ -2785,16 +3159,16 @@
     var sheetColorMap = {
       'Purchase Request': '#0b5394',
       'RFQ':              '#00695c',
-      'Abstract of Qoutations':      '#6a1b9a',
+      'Abstract of Quotations':      '#6a1b9a',
       'Purchase Order':   '#c77b00'
     };
     var sheetIconMap = {
       'Purchase Request': '📋',
       'RFQ':              '📨',
-      'Abstract of Qoutations':      '📊',
+      'Abstract of Quotations':      '📊',
       'Purchase Order':   '🛒'
     };
-    var typeToSheet = { AOQ: 'Abstract of Qoutations', RFQ: 'RFQ', PO: 'Purchase Order' };
+    var typeToSheet = { AOQ: 'Abstract of Quotations', RFQ: 'RFQ', PO: 'Purchase Order' };
     var primarySheet = typeToSheet[type] || 'Purchase Request';
     var orderedSheets = [primarySheet];
 
@@ -2813,7 +3187,7 @@
 
     html += '</div>';
     document.getElementById('modalBody').innerHTML = html;
-    var sheetNameMap = { AOQ: 'Abstract of Qoutations', RFQ: 'RFQ', PO: 'Purchase Order' };
+    var sheetNameMap = { AOQ: 'Abstract of Quotations', RFQ: 'RFQ', PO: 'Purchase Order' };
     _currentSheetName = sheetNameMap[type] || 'Purchase Request';
     document.getElementById('downloadBar').style.display = 'flex';
   }
@@ -2920,16 +3294,16 @@
     var sheetColorMap = {
       'Purchase Request': '#0b5394',
       'RFQ':              '#00695c',
-      'Abstract of Qoutations':      '#6a1b9a',
+      'Abstract of Quotations':      '#6a1b9a',
       'Purchase Order':   '#c77b00'
     };
     var sheetIconMap = {
       'Purchase Request': '📋',
       'RFQ':              '📨',
-      'Abstract of Qoutations':      '📊',
+      'Abstract of Quotations':      '📊',
       'Purchase Order':   '🛒'
     };
-    var sName = 'Abstract of Qoutations';
+    var sName = 'Abstract of Quotations';
     var btnStyle = 'background:' + sheetColorMap[sName] + ';color:#fff;border:none;padding:5px 14px;border-radius:5px;cursor:pointer;margin:2px;font-size:12px;font-weight:bold;outline:2px solid #fff;';
     html += '<div style="margin-top:18px;padding:12px 16px;background:#f0f4fa;border-radius:8px;font-size:13px;">'
       + '<strong>🔗 Go to Sheet — PR No. ' + r.prNo + ':</strong>&nbsp;&nbsp;'
@@ -2940,7 +3314,7 @@
     html += '</div>';
 
     document.getElementById('modalBody').innerHTML = html;
-    _currentSheetName = 'Abstract of Qoutations';
+    _currentSheetName = 'Abstract of Quotations';
     document.getElementById('downloadBar').style.display = 'flex';
   }
 
@@ -3223,7 +3597,7 @@
         }
       })
       .withFailureHandler(function(err) { alert("Delete failed: " + err.message); })
-      .deleteItem(row);
+      .deleteItem(row, window._sessionUser ? window._sessionUser.username : '');
   }
 
   /* ─── CLEAR FORM ─── */
@@ -3710,7 +4084,7 @@
       return;
     }
 
-    if (!confirm("Save supplier quotations for PR No. " + supplierPrNo + " and push to Abstract of Qoutations sheet?")) return;
+    if (!confirm("Save supplier quotations for PR No. " + supplierPrNo + " and push to Abstract of Quotations sheet?")) return;
 
     // Build one saveSupplierData call per supplier that has a name
     var suppliersToSave = [];
@@ -3827,7 +4201,7 @@
                     + '<div style="font-size:18px;font-weight:bold;color:#2e7d32;margin:8px 0;">Supplier quotations saved successfully!</div>'
                     + '<div style="font-size:14px;color:#555;">PR No.: ' + supplierPrNo + '</div>'
                     + '</div>';
-                  _currentSheetName = 'Abstract of Qoutations';
+                  _currentSheetName = 'Abstract of Quotations';
                   document.getElementById('downloadBar').style.display = 'flex';
                   return;
                 }
@@ -3849,7 +4223,7 @@
                   + '<div style="font-size:18px;font-weight:bold;color:#2e7d32;margin:8px 0;">Supplier quotations saved successfully!</div>'
                   + '<div style="font-size:14px;color:#555;">PR No.: ' + supplierPrNo + '</div>'
                   + '</div>';
-                _currentSheetName = 'Abstract of Qoutations';
+                _currentSheetName = 'Abstract of Quotations';
                 document.getElementById('downloadBar').style.display = 'flex';
               })
               .searchItem(supplierPrNo);
@@ -3938,7 +4312,399 @@
     return Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  /* ─── USER MANAGEMENT ─── */
+
+  var _editingUserRow = null;
+
+  function openUserManagement() {
+    showScreen('screenUsers');
+    loadUsers();
+  }
+
+  function loadUsers() {
+    google.script.run
+      .withSuccessHandler(function(users) {
+        var tbody = document.getElementById('usersTableBody');
+        tbody.innerHTML = '';
+        document.getElementById('usersCount').textContent = users.length + ' user(s)';
+        users.forEach(function(u, idx) {
+          var roleBadge = u.role.toLowerCase() === 'admin'
+            ? '<span class="role-badge admin">Admin</span>'
+            : '<span class="role-badge user">User</span>';
+          var statusBadge = u.accountStatus.toLowerCase() === 'active'
+            ? '<span class="status-badge active">Active</span>'
+            : '<span class="status-badge inactive">Inactive</span>';
+          var lastLogin = u.lastLogin ? u.lastLogin.substring(0, 16).replace('T', ' ') : '-';
+          var row = '<tr>' +
+            '<td>' + (idx + 1) + '</td>' +
+            '<td>' + escHtml(u.fullName) + '</td>' +
+            '<td>' + escHtml(u.username) + '</td>' +
+            '<td>' + escHtml(u.email || '-') + '</td>' +
+            '<td>' + escHtml(u.office || '-') + '</td>' +
+            '<td>' + roleBadge + '</td>' +
+            '<td>' + statusBadge + '</td>' +
+            '<td>' + lastLogin + '</td>' +
+            '<td class="action-cell">' +
+              '<button class="edit-btn" onclick="editUser(' + u.row + ')">Edit</button>' +
+              '<button class="delete-btn" onclick="deleteUserConfirm(' + u.row + ')">Delete</button>' +
+              '<button class="reset-pwd-btn" onclick="openResetPasswordModal(' + u.row + ', \'' + u.username.replace(/'/g, '\\\'') + '\', \'' + u.fullName.replace(/'/g, '\\\'') + '\')">Reset Password</button>' +
+            '</td>' +
+          '</tr>';
+          tbody.innerHTML += row;
+        });
+      })
+      .withFailureHandler(function(err) {
+        alert('Failed to load users: ' + err.message);
+      })
+      .listUsers();
+  }
+
+  function openUserModal(row) {
+    _editingUserRow = row || null;
+    document.getElementById('userModalTitle').textContent = row ? 'Edit User' : 'Add New User';
+    document.getElementById('userFormPassword').parentElement.style.display = row ? 'none' : 'flex';
+    document.getElementById('userFormPassword').removeAttribute('required');
+    if (!row) document.getElementById('userFormPassword').setAttribute('required', 'required');
+    document.getElementById('userFormUsername').value = '';
+    document.getElementById('userFormFullName').value = '';
+    document.getElementById('userFormEmail').value = '';
+    document.getElementById('userFormOffice').value = '';
+    document.getElementById('userFormPosition').value = '';
+    document.getElementById('userFormRole').value = 'User';
+    document.getElementById('userFormStatus').value = 'Active';
+    document.getElementById('userFormPassword').value = '';
+
+    if (row) {
+      google.script.run
+        .withSuccessHandler(function(users) {
+          var found = users.filter(function(u) { return u.row === row; });
+          if (found.length) {
+            var u = found[0];
+            document.getElementById('userFormUsername').value = u.username;
+            document.getElementById('userFormFullName').value = u.fullName;
+            document.getElementById('userFormEmail').value = u.email;
+            document.getElementById('userFormOffice').value = u.office;
+            document.getElementById('userFormPosition').value = u.position;
+            document.getElementById('userFormRole').value = u.role;
+            document.getElementById('userFormStatus').value = u.accountStatus;
+          }
+        })
+        .listUsers();
+    }
+
+    document.getElementById('userFormModal').style.display = 'flex';
+  }
+
+  function closeUserModal() {
+    document.getElementById('userFormModal').style.display = 'none';
+    _editingUserRow = null;
+  }
+
+  function saveUser() {
+    var username = document.getElementById('userFormUsername').value.trim();
+    var fullName = document.getElementById('userFormFullName').value.trim();
+    var password = document.getElementById('userFormPassword').value.trim();
+    if (!username || !fullName) { alert('Username and Full Name are required.'); return; }
+    if (!_editingUserRow && !password) { alert('Password is required for new users.'); return; }
+
+    var data = {
+      row: _editingUserRow || null,
+      username: username,
+      fullName: fullName,
+      email: document.getElementById('userFormEmail').value.trim(),
+      office: document.getElementById('userFormOffice').value.trim(),
+      position: document.getElementById('userFormPosition').value.trim(),
+      role: document.getElementById('userFormRole').value,
+      accountStatus: document.getElementById('userFormStatus').value,
+      password: password
+    };
+
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        if (msg === 'User saved successfully.') {
+          closeUserModal();
+          loadUsers();
+        } else {
+          alert(msg);
+        }
+      })
+      .withFailureHandler(function(err) {
+        alert('Failed to save user: ' + err.message);
+      })
+      .saveUser(data);
+  }
+
+  function editUser(row) { openUserModal(row); }
+
+  function deleteUserConfirm(row) {
+    if (!confirm('Delete this user? This cannot be undone.')) return;
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        if (msg === 'User deleted successfully.') {
+          loadUsers();
+        } else {
+          alert(msg);
+        }
+      })
+      .withFailureHandler(function(err) {
+        alert('Failed to delete user: ' + err.message);
+      })
+      .deleteUser(row);
+  }
+
+  /* ─── CHANGE PASSWORD (self‑service) ─── */
+  function openChangePasswordModal() {
+    document.getElementById('chgOldPassword').value = '';
+    document.getElementById('chgNewPassword').value = '';
+    document.getElementById('chgConfirmPassword').value = '';
+    document.getElementById('changePwdModal').style.display = 'flex';
+  }
+
+  function closeChangePasswordModal() {
+    document.getElementById('changePwdModal').style.display = 'none';
+  }
+
+  function submitChangePassword() {
+    var oldPwd = document.getElementById('chgOldPassword').value;
+    var newPwd = document.getElementById('chgNewPassword').value;
+    var confirmPwd = document.getElementById('chgConfirmPassword').value;
+    var username = document.getElementById('currentUser').value;
+
+    if (!oldPwd || !newPwd || !confirmPwd) { alert('All fields are required.'); return; }
+    if (newPwd !== confirmPwd) { alert('New passwords do not match.'); return; }
+    if (newPwd.length < 3) { alert('Password must be at least 3 characters.'); return; }
+
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        if (msg === 'Password changed successfully.') {
+          closeChangePasswordModal();
+          alert(msg);
+        } else {
+          alert(msg);
+        }
+      })
+      .withFailureHandler(function(err) {
+        alert('Failed to change password: ' + err.message);
+      })
+      .changeOwnPassword(username, oldPwd, newPwd);
+  }
+
+  /* ─── ADMIN RESET PASSWORD ─── */
+  var _resettingPwdRow = null;
+  var _resettingPwdName = '';
+
+  function openResetPasswordModal(row, username, fullName) {
+    _resettingPwdRow = row;
+    _resettingPwdName = username;
+    document.getElementById('resetPwdUserLabel').textContent = 'Reset password for: ' + fullName + ' (' + username + ')';
+    document.getElementById('resetNewPassword').value = '';
+    document.getElementById('resetConfirmPassword').value = '';
+    document.getElementById('resetPwdModal').style.display = 'flex';
+  }
+
+  function closeResetPasswordModal() {
+    document.getElementById('resetPwdModal').style.display = 'none';
+    _resettingPwdRow = null;
+    _resettingPwdName = '';
+  }
+
+  function submitResetPassword() {
+    var newPwd = document.getElementById('resetNewPassword').value;
+    var confirmPwd = document.getElementById('resetConfirmPassword').value;
+
+    if (!newPwd || !confirmPwd) { alert('All fields are required.'); return; }
+    if (newPwd !== confirmPwd) { alert('Passwords do not match.'); return; }
+    if (newPwd.length < 3) { alert('Password must be at least 3 characters.'); return; }
+
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        alert(msg);
+        closeResetPasswordModal();
+      })
+      .withFailureHandler(function(err) {
+        alert('Failed to reset password: ' + err.message);
+      })
+      .resetUserPassword(_resettingPwdRow, newPwd);
+  }
+
 </script>
 
-</body>
+<!-- ══════════════════════════════════════════
+     CHANGE PASSWORD MODAL (self‑service)
+══════════════════════════════════════════ -->
+<div class="modal-overlay change-pwd-modal" id="changePwdModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header change-pwd-header">&#128274; Change Password</div>
+    <div class="modal-body">
+      <div class="user-form-row">
+        <div class="field" style="flex:1;">
+          <label>Current Password *</label>
+          <div class="password-wrap">
+            <input type="password" id="chgOldPassword" placeholder="Enter current password">
+            <button type="button" class="pwd-toggle" onclick="togglePasswordVisibility(this)" title="Show password">&#x1F441;</button>
+          </div>
+        </div>
+      </div>
+      <div class="user-form-row">
+        <div class="field">
+          <label>New Password *</label>
+          <div class="password-wrap">
+            <input type="password" id="chgNewPassword" placeholder="Enter new password">
+            <button type="button" class="pwd-toggle" onclick="togglePasswordVisibility(this)" title="Show password">&#x1F441;</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Confirm New Password *</label>
+          <div class="password-wrap">
+            <input type="password" id="chgConfirmPassword" placeholder="Re-enter new password">
+            <button type="button" class="pwd-toggle" onclick="togglePasswordVisibility(this)" title="Show password">&#x1F441;</button>
+          </div>
+        </div>
+      </div>
+      <div class="user-form-actions">
+        <button class="cancel-btn" onclick="closeChangePasswordModal()">Cancel</button>
+        <button class="save-btn" onclick="submitChangePassword()">Change Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ADMIN RESET PASSWORD MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay change-pwd-modal" id="resetPwdModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header reset-pwd-header">&#128274; Reset Password</div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px;font-size:14px;color:#555;" id="resetPwdUserLabel"></div>
+      <div class="user-form-row">
+        <div class="field">
+          <label>New Password *</label>
+          <div class="password-wrap">
+            <input type="password" id="resetNewPassword" placeholder="Enter new password">
+            <button type="button" class="pwd-toggle" onclick="togglePasswordVisibility(this)" title="Show password">&#x1F441;</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Confirm New Password *</label>
+          <div class="password-wrap">
+            <input type="password" id="resetConfirmPassword" placeholder="Re-enter new password">
+            <button type="button" class="pwd-toggle" onclick="togglePasswordVisibility(this)" title="Show password">&#x1F441;</button>
+          </div>
+        </div>
+      </div>
+      <div class="user-form-actions">
+        <button class="cancel-btn" onclick="closeResetPasswordModal()">Cancel</button>
+        <button class="save-btn" onclick="submitResetPassword()">Reset Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 4 — USER MANAGEMENT
+══════════════════════════════════════════ -->
+<div class="screen" id="screenUsers">
+  <div class="form-topbar">
+    <button class="back-btn" onclick="showScreen('screenSelector')">← Back</button>
+    <div class="form-label-badge" style="background:#e8a317;color:#fff;">👥 User Management</div>
+  </div>
+  <div class="users-header-bar">
+    <span class="users-count" id="usersCount">0 user(s)</span>
+    <button class="users-add-btn" onclick="openUserModal()">+ Add New User</button>
+  </div>
+  <table class="users-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Full Name</th>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Office</th>
+        <th>Role</th>
+        <th>Status</th>
+        <th>Last Login</th>
+        <th style="text-align:center;">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="usersTableBody"></tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════
+     USER FORM MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay user-form-modal" id="userFormModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header" id="userModalTitle">Add New User</div>
+    <div class="modal-body">
+      <div class="user-form-row">
+        <div class="field">
+          <label>Full Name *</label>
+          <input type="text" id="userFormFullName" placeholder="Full Name">
+        </div>
+        <div class="field">
+          <label>Username *</label>
+          <input type="text" id="userFormUsername" placeholder="Username">
+        </div>
+      </div>
+      <div class="user-form-row">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="userFormEmail" placeholder="Email address">
+        </div>
+        <div class="field">
+          <label>Office</label>
+          <select id="userFormOffice"> 
+            <option value="Regional office">Regional Office</option>
+            <option value="Albay Provincial Office">Albay Provincial Office</option>
+            <option value="Camarines Norte Provincial Office">Camarines Norte Provincial Office</option>
+            <option value="Camarines Sur Provincial Office">Camarines Sur Provincial Office</option>
+            <option value="Catanduanes Provincial Office">Catanduanes Provincial Office</option>
+            <option value="Masbate Provincial Office">Masbate Provincial Office</option>
+            <option value="Sorsogon Provincial Office">Sorsogon Provincial Office</option>
+          </select>
+        </div>
+      </div>
+      <div class="user-form-row">
+        <div class="field">
+          <label>Position</label>
+          <select id="userFormPosition">
+            <option value="Administrative Officer IV">Administrative Office IV</option>
+            <option value="Chief Treasury Operations Officer II">Chief Treasury Operations Officer II</option>
+            <option value="Chief Treasury Operations Officer I">Chief Treasury Operations Officer I</option>
+            <option value="Chief Treasury Operations Officer I/OIC">Chief Treasury Operations Officer I/OIC</option>
+            <option value="Treasury Operations Officer IV">Treasury Operations Officer IV</option>
+            <option value="Treasury Operations Officer IV/OIC">Treasury Operations Officer IV/OIC</option>
+            <option value="Treasury Operations Officer III">Treasury Operations Officer III</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Role *</label>
+          <select id="userFormRole">
+            <option value="User">User</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="user-form-row">
+        <div class="field">
+          <label>Account Status</label>
+          <select id="userFormStatus">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Password </label>
+          <input type="password" id="userFormPassword" placeholder="Password">
+        </div>
+      </div>
+      <div class="user-form-actions">
+        <button class="cancel-btn" onclick="closeUserModal()">Cancel</button>
+        <button class="save-btn" onclick="saveUser()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
 </html>

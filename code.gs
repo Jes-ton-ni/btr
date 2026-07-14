@@ -4,11 +4,205 @@ function log() {
   if (DEBUG) Logger.log.apply(Logger, arguments);
 }
 
+function getCurrentUser() {
+  return Session.getEffectiveUser().getEmail();
+}
+
+/* =================================
+   LOGIN SYSTEM — User Sheet
+================================= */
+
+function ensureUsersSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var userSheet = ss.getSheetByName("User");
+  if (userSheet) return userSheet;
+
+  // --- Auto-migrate from old "USERS" sheet if present ---
+  var oldSheet = ss.getSheetByName("USERS");
+  if (oldSheet) {
+    var oldData = oldSheet.getDataRange().getValues();
+    userSheet = ss.insertSheet("User");
+    userSheet.appendRow(["User", "Username", "Password", "Full Name", "Email", "Office", "Position", "Role", "Account Status", "Last Login", "Date Created"]);
+    userSheet.setFrozenRows(1);
+    for (var i = 1; i < oldData.length; i++) {
+      var oldUser = String(oldData[i][0] || '').trim();
+      var oldHash = String(oldData[i][1] || '').trim();
+      var oldName = String(oldData[i][2] || '').trim();
+      var oldEmail = String(oldData[i][3] || '').trim();
+      var role = oldUser.toLowerCase() === 'admin' ? 'Admin' : 'User';
+      userSheet.appendRow([oldUser, oldUser, oldHash, oldName, oldEmail, '', '', role, 'Active', '', '']);
+    }
+    ss.deleteSheet(oldSheet);
+    hideAndProtectSheet(userSheet);
+    return userSheet;
+  }
+
+  // --- Fresh creation ---
+  userSheet = ss.insertSheet("User");
+  userSheet.appendRow(["User", "Username", "Password", "Full Name", "Email", "Office", "Position", "Role", "Account Status", "Last Login", "Date Created"]);
+  userSheet.setFrozenRows(1);
+  var adminHash = hashPassword("admin123");
+  userSheet.appendRow(["admin", "admin", adminHash, "Administrator", "", "", "", "Admin", "Active", "", new Date().toISOString()]);
+  hideAndProtectSheet(userSheet);
+  return userSheet;
+}
+
+function hashPassword(password) {
+  var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password, Utilities.Charset.UTF_8);
+  return digest.map(function(b) { return ('0' + (b & 0xFF).toString(16)).slice(-2); }).join('');
+}
+
+function validateLogin(login, password) {
+  var sheet = ensureUsersSheet();
+  var data = sheet.getDataRange().getValues();
+  var inputHash = hashPassword(password);
+  for (var i = 1; i < data.length; i++) {
+    var username = String(data[i][1] || '').trim().toLowerCase();
+    var email    = String(data[i][4] || '').trim().toLowerCase();
+    var status   = String(data[i][8] || '').trim();
+    var loginLC  = login.trim().toLowerCase();
+    if (username === loginLC || email === loginLC) {
+      if (status !== '' && status.toLowerCase() !== 'active') return null;
+      if (String(data[i][2] || '').trim() !== inputHash) return null;
+      sheet.getRange(i + 1, 10).setValue(new Date().toISOString());
+      return {
+        username:  String(data[i][1]).trim(),
+        fullName:  String(data[i][3] || data[i][1]).trim(),
+        email:     String(data[i][4] || '').trim(),
+        office:    String(data[i][5] || '').trim(),
+        role:      String(data[i][7] || '').trim()
+      };
+    }
+  }
+  return null;
+}
+
+function addUser(username, password, fullName, email) {
+  var sheet = ensureUsersSheet();
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][1] || '').trim().toLowerCase() === username.trim().toLowerCase()) {
+      return "Username already exists.";
+    }
+  }
+  var hash = hashPassword(password);
+  sheet.appendRow([username.trim(), username.trim(), hash, fullName.trim(), email.trim(), '', '', 'User', 'Active', '', new Date().toISOString()]);
+  return "User added successfully.";
+}
+
+function listUsers() {
+  var sheet = ensureUsersSheet();
+  var data = sheet.getDataRange().getValues();
+  var users = [];
+  for (var i = 1; i < data.length; i++) {
+    users.push({
+      row:           i + 1,
+      user:          String(data[i][0] || '').trim(),
+      username:      String(data[i][1] || '').trim(),
+      fullName:      String(data[i][3] || '').trim(),
+      email:         String(data[i][4] || '').trim(),
+      office:        String(data[i][5] || '').trim(),
+      position:      String(data[i][6] || '').trim(),
+      role:          String(data[i][7] || '').trim(),
+      accountStatus: String(data[i][8] || '').trim(),
+      lastLogin:     String(data[i][9] || '').trim(),
+      dateCreated:   String(data[i][10] || '').trim()
+    });
+  }
+  return users;
+}
+
+function saveUser(data) {
+  var sheet = ensureUsersSheet();
+  var allData = sheet.getDataRange().getValues();
+  var isNew = !data.row;
+  var usernameTrim = (data.username || '').trim();
+  var fullNameTrim = (data.fullName || '').trim();
+  var emailTrim = (data.email || '').trim();
+  var passwordRaw = (data.password || '').trim();
+
+  if (!usernameTrim || !fullNameTrim) return "Username and Full Name are required.";
+  if (isNew && !passwordRaw) return "Password is required for new users.";
+
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][1] || '').trim().toLowerCase() === usernameTrim.toLowerCase()) {
+      if (isNew || (i + 1) !== data.row) return "Username already exists.";
+    }
+  }
+
+  var row = [usernameTrim, usernameTrim];
+  var pwdHash = passwordRaw ? hashPassword(passwordRaw) : (isNew ? '' : String(allData[data.row - 1][2] || '').trim());
+  row.push(pwdHash);
+  row.push(fullNameTrim);
+  row.push(emailTrim);
+  row.push((data.office || '').trim());
+  row.push((data.position || '').trim());
+  row.push((data.role || 'User').trim());
+  row.push((data.accountStatus || 'Active').trim());
+  if (isNew) {
+    row.push('');
+    row.push(new Date().toISOString());
+  } else {
+    row.push(String(allData[data.row - 1][9] || '').trim());
+    row.push(String(allData[data.row - 1][10] || '').trim());
+  }
+
+  if (isNew) {
+    sheet.appendRow(row);
+  } else {
+    sheet.getRange(data.row, 1, 1, 11).setValues([row]);
+  }
+  return "User saved successfully.";
+}
+
+function deleteUser(row) {
+  var sheet = ensureUsersSheet();
+  var data = sheet.getDataRange().getValues();
+  if (row < 2 || row > data.length) return "Invalid user row.";
+  var remainingAdmins = 0;
+  for (var i = 1; i < data.length; i++) {
+    if ((i + 1) !== row && String(data[i][7] || '').trim().toLowerCase() === 'admin') remainingAdmins++;
+  }
+  if (String(data[row - 1][7] || '').trim().toLowerCase() === 'admin' && remainingAdmins === 0) {
+    return "Cannot delete the last admin user.";
+  }
+  sheet.deleteRow(row);
+  return "User deleted successfully.";
+}
+
+function changeOwnPassword(username, oldPassword, newPassword) {
+  var sheet = ensureUsersSheet();
+  var data = sheet.getDataRange().getValues();
+  var oldHash = hashPassword(oldPassword);
+  for (var i = 1; i < data.length; i++) {
+    var uname = String(data[i][1] || '').trim();
+    if (uname.toLowerCase() === username.trim().toLowerCase()) {
+      if (String(data[i][2] || '').trim() !== oldHash) return "Current password is incorrect.";
+      var newHash = hashPassword(newPassword);
+      sheet.getRange(i + 1, 3).setValue(newHash);
+      return "Password changed successfully.";
+    }
+  }
+  return "User not found.";
+}
+
+function resetUserPassword(row, newPassword) {
+  var sheet = ensureUsersSheet();
+  var data = sheet.getDataRange().getValues();
+  if (row < 2 || row > data.length) return "Invalid user row.";
+  var newHash = hashPassword(newPassword);
+  sheet.getRange(row, 3).setValue(newHash);
+  var uname = String(data[row - 1][1] || '').trim();
+  return "Password for " + uname + " reset successfully.";
+}
+
 // ================================================
 //  code.gs — Procurement System (Fixed)
 // ================================================
 
 function showForm() {
+  ensureUsersSheet();
+  hideAndProtectSystemSheets();
   const html = HtmlService
     .createHtmlOutputFromFile('form')
     .setWidth(2000)
@@ -38,6 +232,7 @@ function parseNum(v) {
 }
 
 function onOpen() {
+  hideAndProtectSystemSheets();
   SpreadsheetApp.getUi()
     .createMenu('My Menu')
     .addItem('Download Canvass', 'downloadCanvass')
@@ -71,28 +266,42 @@ function showCanvass() {
    number is not already in use.
 ================================= */
 function getNextUniquePRNo(office) {
-  var sheet = getSheet();
-  var data = sheet.getDataRange().getValues();
-  var today = new Date();
-  var yyyy = today.getFullYear();
-  var mm = String(today.getMonth() + 1).padStart(2, '0');
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(30000); } catch(e) { return "PR-ERROR-LOCK"; }
+  try {
+    var sheet = getSheet();
+    var data = sheet.getDataRange().getValues();
+    var today = new Date();
+    var yyyy = today.getFullYear();
+    var mm = String(today.getMonth() + 1).padStart(2, '0');
 
-  var initials = getOfficeInitials(office);
-  var prefix = 'PR-' + initials + '-' + yyyy + '-' + mm + '-';
+    var initials = getOfficeInitials(office);
+    var prefix = 'PR-' + initials + '-' + yyyy + '-' + mm + '-';
 
-  // Collect existing PR Nos from sheet (col B)
-  var existing = {};
-  for (var i = 1; i < data.length; i++) {
-    var pr = cleanPrNo(data[i][1]).toUpperCase();
-    if (pr) existing[pr] = true;
+    // Collect existing PR Nos for this office (col B) and find highest NNN
+    var existing = {};
+    var maxSeq = 0;
+    var officePrefix = 'PR-' + initials + '-';
+    for (var i = 1; i < data.length; i++) {
+      var pr = cleanPrNo(data[i][1]).toUpperCase();
+      if (!pr || pr.indexOf(officePrefix) !== 0) continue;
+      existing[pr] = true;
+      var parts = pr.split('-');
+      if (parts.length === 5) {
+        var seqNum = parseInt(parts[4], 10);
+        if (!isNaN(seqNum) && seqNum > maxSeq) maxSeq = seqNum;
+      }
+    }
+
+    // Find the next unique NNN, continuing from highest existing
+    var seq = maxSeq + 1;
+    while (existing[prefix + String(seq).padStart(3, '0')]) {
+      seq++;
+    }
+    return prefix + String(seq).padStart(3, '0');
+  } finally {
+    lock.releaseLock();
   }
-
-  // Find the next unique NNN
-  var seq = 1;
-  while (existing[prefix + String(seq).padStart(3, '0')]) {
-    seq++;
-  }
-  return prefix + String(seq).padStart(3, '0');
 }
 
 /**
@@ -124,8 +333,11 @@ function getNextUniquePONo(prNo, reserved) {
   var initials = office ? getOfficeInitials(office) : 'RO';
   var prefix = 'PO-' + initials + '-' + yyyy + '-' + mm + '-';
 
+  var officePrefix = 'PO-' + initials + '-';
+
   // Collect existing PO Nos from sheet names (PO - SupplierName) and AOQ_SupplierData
   var existing = {};
+  var maxSeq = 0;
   var sheets = ss.getSheets();
   for (var i = 0; i < sheets.length; i++) {
     var name = sheets[i].getName();
@@ -134,13 +346,21 @@ function getNextUniquePONo(prNo, reserved) {
     }
   }
 
-  // Also check AOQ_SupplierData column J for existing PO Nos
+  // Also check AOQ_SupplierData column J for existing PO Nos and track max NNN
   var aoqDataSheet = ss.getSheetByName("AOQ_SupplierData");
   if (aoqDataSheet) {
     var aoqData = aoqDataSheet.getDataRange().getValues();
     for (var i = 1; i < aoqData.length; i++) {
       var poNo = String(aoqData[i][9] || '').trim().toUpperCase();
-      if (poNo) existing[poNo] = true;
+      if (!poNo) continue;
+      existing[poNo] = true;
+      if (poNo.indexOf(officePrefix) === 0) {
+        var parts = poNo.split('-');
+        if (parts.length === 5) {
+          var seqNum = parseInt(parts[4], 10);
+          if (!isNaN(seqNum) && seqNum > maxSeq) maxSeq = seqNum;
+        }
+      }
     }
   }
 
@@ -151,8 +371,8 @@ function getNextUniquePONo(prNo, reserved) {
     }
   }
 
-  // Find the next unique NNN
-  var seq = 1;
+  // Find the next unique NNN, continuing from highest existing
+  var seq = maxSeq + 1;
   while (existing[prefix + String(seq).padStart(3, '0')]) {
     seq++;
   }
@@ -186,14 +406,15 @@ function saveItem(data) {
   const sheet = getSheet();
   const nextRow = sheet.getLastRow() + 1;
   const totalCost = Number(data.quantity || 0) * Number(data.unitCost || 0);
+  const userEmail = data.username || Session.getEffectiveUser().getEmail();
 
-  sheet.getRange(nextRow, 1, 1, 20).setValues([[
+  sheet.getRange(nextRow, 1, 1, 21).setValues([[
     data.date, cleanPrNo(data.prNo), data.fundCluster, data.office, data.unit,
     data.itemDescription, data.quantity, data.unitCost, totalCost,
     data.purpose, data.deliveryTerm, data.paymentTerm, data.deliveryPeriod,
     data.supplier, data.supplierAddress, data.tin,
     data.modeProcurement, data.placeDelivery, data.dateDelivery,
-    data.title
+    data.title, userEmail
   ]]);
 
   return "Item Added Successfully!";
@@ -217,19 +438,20 @@ function saveMultipleItems(itemsArray) {
 
   var rows = itemsArray.map(function(d) {
     var totalCost = Number(d.quantity || 0) * Number(d.unitCost || 0);
+    var userEmail = d.username || Session.getEffectiveUser().getEmail();
     return [
       d.date, cleanPrNo(d.prNo), d.fundCluster, d.office, d.unit,
       d.itemDescription, d.quantity, d.unitCost, totalCost,
       d.purpose, d.deliveryTerm, d.paymentTerm, d.deliveryPeriod,
       d.supplier, d.supplierAddress, d.tin,
       d.modeProcurement, d.placeDelivery, d.dateDelivery,
-      d.title
+      d.title, userEmail
     ];
   });
 
   var sheet   = getSheet();
   var nextRow = sheet.getLastRow() + 1;
-  sheet.getRange(nextRow, 1, rows.length, 20).setValues(rows);
+  sheet.getRange(nextRow, 1, rows.length, 21).setValues(rows);
 
   try {
     writeToPRSheet(cleanPrNo(itemsArray[0].prNo));
@@ -280,7 +502,8 @@ function searchItem(prNo) {
         tin: data[i][15],
         modeProcurement: data[i][16],
         placeDelivery: data[i][17],
-        dateDelivery: formatDate(data[i][18])
+        dateDelivery: formatDate(data[i][18]),
+        userEmail: data[i][20] || ''
       });
     }
   }
@@ -515,11 +738,19 @@ function updateItem(data) {
   }
 
   const existing = sheet
-    .getRange(targetRow, 1, 1, 20)
+    .getRange(targetRow, 1, 1, 21)
     .getValues()[0];
 
   if (!existing || !existing[1]) {
     return "Selected row no longer exists.";
+  }
+
+  // Ownership check
+  var loggedInUser = (data.username || Session.getEffectiveUser().getEmail() || '').trim();
+  var storedUser = String(existing[20] || '').trim();
+  // Skip check for legacy items (email addresses) or empty
+  if (storedUser && storedUser.indexOf('@') === -1 && storedUser !== loggedInUser) {
+    return "This item was added by " + storedUser + ". You can only update items you created.";
   }
 
   // Preserve original PR No.
@@ -549,7 +780,8 @@ function updateItem(data) {
     data.modeProcurement,          // Q Mode of Procurement
     data.placeDelivery,            // R Place of Delivery
     data.dateDelivery,             // S Date of Delivery
-    data.title                     // T Title
+    data.title,                    // T Title
+    existing[20] || loggedInUser    // U User Email (preserve existing)
   ];
 
   Logger.log("===== BEFORE UPDATE =====");
@@ -559,7 +791,7 @@ function updateItem(data) {
   });
 
   sheet
-    .getRange(targetRow, 1, 1, 20)
+    .getRange(targetRow, 1, 1, 21)
     .setValues([updatedRow]);
 
   SpreadsheetApp.flush();
@@ -586,7 +818,7 @@ function updateItem(data) {
    end reloads fresh data after delete
    to stay in sync.
 ================================= */
-function deleteItem(row) {
+function deleteItem(row, username) {
   var sheet = getSheet();
   row = Number(row);
 
@@ -594,6 +826,14 @@ function deleteItem(row) {
 
   var lastRow = sheet.getLastRow();
   if (row > lastRow) return "Row " + row + " does not exist in the sheet.";
+
+  // Ownership check
+  var rowData = sheet.getRange(row, 1, 1, 21).getValues()[0];
+  var loggedInUser = (username || Session.getEffectiveUser().getEmail() || '').trim();
+  var storedUser = String(rowData[20] || '').trim();
+  if (storedUser && storedUser.indexOf('@') === -1 && storedUser !== loggedInUser) {
+    return "This item was added by " + storedUser + ". You can only delete items you created.";
+  }
 
   sheet.deleteRow(row);
   return "Item Deleted Successfully!";
@@ -807,22 +1047,24 @@ function writeToRFQSheet(prNo) {
   // Delivery Term at C46
   if (first.deliveryTerm) rfqSheet.getRange("C46").setValue(first.deliveryTerm);
 
+  removeSheetProtections("RFQ");
+
   return "RFQ Sheet populated with " + items.length + " item(s) for PR No. " + prNo;
 }
 
 
 /* =================================
    WRITE TO AOQ SHEET
-   Populates the "Abstract of Qoutations" sheet
+   Populates the "Abstract of Quotations" sheet
    from SUMMARY data for the given PR No.
 ================================= */
 function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
   var ss           = SpreadsheetApp.getActiveSpreadsheet();
   var summarySheet = ss.getSheetByName("SUMMARY");
-  var aoqSheet     = ss.getSheetByName("Abstract of Qoutations");
+  var aoqSheet     = ss.getSheetByName("Abstract of Quotations");
 
   if (!summarySheet) return "SUMMARY sheet not found.";
-  if (!aoqSheet)     return "Abstract of Qoutations sheet not found.";
+  if (!aoqSheet)     return "Abstract of Quotations sheet not found.";
 
   log("writeToAOQSheet called — prNo: " + prNo);
   log("suppliersJson: " + (suppliersJson ? suppliersJson.substring(0, 200) : "EMPTY/UNDEFINED"));
@@ -1004,7 +1246,9 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
     log("pricingJson is EMPTY or UNDEFINED — supplier pricing will NOT be written");
   }
 
-  return "Abstract of Qoutations Sheet populated with " + items.length + " item(s) for PR No. " + prNo;
+  removeSheetProtections("Abstract of Quotations");
+
+  return "Abstract of Quotations Sheet populated with " + items.length + " item(s) for PR No. " + prNo;
 }
 
 
@@ -1014,7 +1258,7 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
  */
 function writeToAOQSheetWithExistingData(prNo) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var aoqSheet = ss.getSheetByName("Abstract of Qoutations");
+  var aoqSheet = ss.getSheetByName("Abstract of Quotations");
   if (!aoqSheet) return writeToAOQSheet(prNo);
 
   // Read existing supplier data before writeToAOQSheet clears it
@@ -1129,7 +1373,7 @@ function writeToAOQSheetWithExistingData(prNo) {
 /* =================================
    LOAD SUPPLIER PRICING
    Reads per-supplier pricing data from
-   the "Abstract of Qoutations" sheet
+   the "Abstract of Quotations" sheet
    for the given PR No. and returns it
    as JSON for the AOQ form view.
    Schema: { suppliers: [{ name, address, items: [{ itemDescription, unitCost, totalCost }], selectedItems: [string] }] }
@@ -1137,7 +1381,7 @@ function writeToAOQSheetWithExistingData(prNo) {
 ================================= */
 function loadSupplierPricing(prNo) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var aoqSheet = ss.getSheetByName("Abstract of Qoutations");
+  var aoqSheet = ss.getSheetByName("Abstract of Quotations");
   var summarySheet = ss.getSheetByName("SUMMARY");
 
   var supplierCols = [8, 11, 14, 17, 20]; // 1-indexed: H, K, N, Q, T
@@ -1478,6 +1722,8 @@ function writeToPOSheet(prNo, supplierName) {
   var grandTotalCell = poSheet.getRange(45, 7);
   grandTotalCell.setFormula("=SUM(G" + DATA_START_ROW + ":G" + lastDataRow + ")");
 
+  removeSheetProtections("Purchase Order");
+
   return "Purchase Order sheet populated with " + items.length + " item(s) for PR No. " + prNo;
 }
 
@@ -1554,7 +1800,51 @@ function ensureAOQSupplierDataSheet() {
   sheet = ss.insertSheet("AOQ_SupplierData");
   sheet.appendRow(["PR No.", "Supplier Name", "Supplier Address", "TIN", "Item Description", "Unit Cost", "Total Cost", "Selected", "Col Idx", "PO No."]);
   sheet.setFrozenRows(1);
+  hideAndProtectSheet(sheet);
   return sheet;
+}
+
+/* =================================
+   HIDE & PROTECT SYSTEM SHEETS
+   Hides and protects specified sheets
+   from user visibility and editing.
+   Script can still read/write.
+================================= */
+function hideAndProtectSystemSheets() {
+  var systemSheets = ["AOQ_SupplierData", "Header/Signatories", "User"];
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  systemSheets.forEach(function(name) {
+    hideAndProtectSheet(ss.getSheetByName(name));
+  });
+}
+
+function hideAndProtectSheet(sheet) {
+  if (!sheet) return;
+  try {
+    sheet.hideSheet();
+  } catch (e) {
+    Logger.log("Could not hide sheet '" + sheet.getName() + "': " + e);
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var owner = ss.getOwner();
+  var currentUser = Session.getEffectiveUser().getEmail();
+  if (!owner || owner.getEmail() !== currentUser) return;
+
+  try {
+    var existingProtections = sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+    for (var i = 0; i < existingProtections.length; i++) {
+      existingProtections[i].remove();
+    }
+    var protection = sheet.protect().setDescription("System sheet — do not edit");
+    if (protection.canDomainEdit()) {
+      protection.setDomainEdit(false);
+    }
+    protection.removeEditors(protection.getEditors());
+    Logger.log("Protected sheet '" + sheet.getName() + "' as owner");
+  } catch (e) {
+    Logger.log("Could not protect sheet '" + sheet.getName() + "': " + e);
+  }
 }
 
 /* =================================
@@ -1586,7 +1876,7 @@ function updateSupplierSelection(prNo, colIdx, itemDescription, selected) {
 
 /**
  * Saves the full supplier data set for a PR No. into the AOQ_SupplierData
- * sheet and re-populates the Abstract of Qoutations sheet.
+ * sheet and re-populates the Abstract of Quotations sheet.
  * Called from the client after all per-supplier saveSupplierData calls.
  *
  * @param {string} prNo - The PR number
@@ -1672,7 +1962,7 @@ function saveFullSupplierData(prNo, allDataJson) {
     dataSheet.getRange(startRow, 1, newRows.length, 10).setValues(newRows);
   }
 
-  // --- Re-populate Abstract of Qoutations sheet ---
+  // --- Re-populate Abstract of Quotations sheet ---
   // Always produce exactly 5 entries for correct column mapping
   var suppliersList = [];
   var pricingList = [];
@@ -1786,7 +2076,7 @@ function createSupplierRFQSheet(prNo, supplierName) {
   var f8Date = (f8Value instanceof Date) ? f8Value : new Date(f8Value);
   f8Date.setDate(f8Date.getDate() + 3);
   var dueDate = Utilities.formatDate(f8Date, Session.getScriptTimeZone(), "MM/dd/yyyy");
-  var introText = "This Office is undergoing procurement of labor and materials for the repainting of the interior walls.  As a known supplier that typically provides the required goods and services, we are sending this Request of Quotation.  Please quote your possible lowest price by filling in the blanks below and return to this Office duly accomplished on or before";
+  var introText = "This Office is undergoing procurement of ________________________________.  As a known supplier that typically provides the required goods and services, we are sending this Request of Quotation.  Please quote your possible lowest price by filling in the blanks below and return to this Office duly accomplished on or before";
   rfqSheet.getRange("A13").setValue(introText + " " + dueDate);
 
   // Write items (cols A-E)
@@ -1807,6 +2097,8 @@ function createSupplierRFQSheet(prNo, supplierName) {
 
   if (first.paymentTerm) rfqSheet.getRange("C45").setValue(first.paymentTerm);
   if (first.deliveryTerm) rfqSheet.getRange("C46").setValue(first.deliveryTerm);
+
+  removeSheetProtections(sheetName);
 
   return "Supplier RFQ sheet created: \"" + sheetName + "\"";
 }
@@ -1935,13 +2227,50 @@ function writeToPRSheet(prNo) {
   var grandTotalCell = prSheet.getRange(DATA_START_ROW + MAX_ITEM_ROWS, 7); // row 41, col G
   grandTotalCell.setFormula("=SUM(G" + DATA_START_ROW + ":G" + lastDataRow + ")");
 
+  removeSheetProtections("Purchase Request");
+
   return "PR Sheet populated with " + items.length + " item(s) for PR No. " + prNo;
+}
+
+/* =================================
+   REMOVE SHEET PROTECTIONS
+   Strips all range and sheet-level
+   protections from the given sheet so
+   exported files are fully editable.
+================================= */
+function removeSheetProtections(sheetName) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      var allSheets = ss.getSheets();
+      for (var i = 0; i < allSheets.length; i++) {
+        if (allSheets[i].getName().toLowerCase() === sheetName.toLowerCase()) {
+          sheet = allSheets[i];
+          break;
+        }
+      }
+    }
+    if (!sheet) return;
+
+    var protections = sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
+    for (var i = 0; i < protections.length; i++) {
+      protections[i].remove();
+    }
+
+    var sheetProtections = sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+    for (var j = 0; j < sheetProtections.length; j++) {
+      sheetProtections[j].remove();
+    }
+  } catch (e) {
+    Logger.log("Could not remove protections from sheet '" + sheetName + "': " + e);
+  }
 }
 
 /* =================================
    GET SHEET EXPORT URL
    Returns a Google Sheets export URL for the given sheet tab and format.
-   Formats: pdf, xlsx, ods, csv, tsv
+   Formats: pdf, xlsx, csv
 ================================= */
 function getSheetExportUrl(sheetName, format) {
   try {
@@ -1957,6 +2286,7 @@ function getSheetExportUrl(sheetName, format) {
       }
     }
     if (!sheet) return null;
+    removeSheetProtections(sheet.getName());
     var ssId = ss.getId();
     var gid = sheet.getSheetId();
     return "https://docs.google.com/spreadsheets/d/" + ssId + "/export?format=" + format + "&gid=" + gid;
