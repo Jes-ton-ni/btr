@@ -1738,6 +1738,21 @@
         if (result) {
           window._sessionUser = result;
           document.getElementById('currentUser').value = result.username;
+          google.script.run
+            .withSuccessHandler(function(info) {
+              if (info) {
+                window._sessionUser = Object.assign({}, result, info);
+                document.getElementById('userDisplay').textContent = '\u{1F464} ' + (info.fullName || result.fullName);
+                var role = (info.role || result.role || '').toLowerCase();
+                document.getElementById('adminUserCard').style.display = (role === 'admin') ? 'block' : 'none';
+                if (window._sessionUser) {
+                  var greeting = document.getElementById('greetingSelector');
+                  if (greeting) greeting.textContent = 'Good day, ' + (info.fullName || result.fullName) + '!';
+                }
+              }
+            })
+            .withFailureHandler(function() {})
+            .getCurrentUserInfo();
           document.getElementById('userDisplay').textContent = '\u{1F464} ' + result.fullName;
           document.getElementById('userDisplay').style.cursor = 'pointer';
           document.getElementById('userDisplay').title = 'Click to change password';

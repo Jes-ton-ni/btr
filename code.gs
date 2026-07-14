@@ -8,6 +8,28 @@ function getCurrentUser() {
   return Session.getEffectiveUser().getEmail();
 }
 
+function getCurrentUserInfo(email) {
+  var sheet = ensureUsersSheet();
+  var data = sheet.getDataRange().getValues();
+
+  email = email.toLowerCase().trim();
+
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][4]).toLowerCase().trim() === email) {
+      return {
+        username: data[i][1],
+        fullName: data[i][3],
+        email: data[i][4],
+        office: data[i][5],
+        position: data[i][6],
+        role: data[i][7]
+      };
+    }
+  }
+
+  return null;
+}
+
 /* =================================
    LOGIN SYSTEM — User Sheet
 ================================= */
