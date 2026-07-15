@@ -1850,6 +1850,54 @@ function ensureAOQSupplierDataSheet() {
 }
 
 /* =================================
+   HEADER/SIGNATORIES SHEET
+   Stores office-level signatory
+   information for form headers.
+   Columns: ID | Office Name | Office
+   Address | Signatory Name |
+   Signatory Position
+================================= */
+function ensureHeaderSignatoriesSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Header/Signatories");
+  if (sheet) return sheet;
+  sheet = ss.insertSheet("Header/Signatories");
+  sheet.appendRow(["ID", "Office Name", "Office Address", "Signatory Name", "Signatory Position"]);
+  sheet.setFrozenRows(1);
+  hideAndProtectSheet(sheet);
+  return sheet;
+}
+
+function getSignatoryForOffice(office) {
+  var sheet = ensureHeaderSignatoriesSheet();
+  var data = sheet.getDataRange().getValues();
+  var search = String(office || '').trim().toLowerCase();
+  if (!search) return { name: '', position: '' };
+
+  for (var i = 1; i < data.length; i++) {
+    var officeName = String(data[i][1] || '').trim().toLowerCase();
+    if (officeName === search) {
+      return {
+        name:     String(data[i][3] || '').trim(),
+        position: String(data[i][4] || '').trim()
+      };
+    }
+  }
+
+  for (var i = 1; i < data.length; i++) {
+    var officeName = String(data[i][1] || '').trim().toLowerCase();
+    if (officeName.indexOf(search) !== -1 || search.indexOf(officeName) !== -1) {
+      return {
+        name:     String(data[i][3] || '').trim(),
+        position: String(data[i][4] || '').trim()
+      };
+    }
+  }
+
+  return { name: '', position: '' };
+}
+
+/* =================================
    HIDE & PROTECT SYSTEM SHEETS
    Hides and protects specified sheets
    from user visibility and editing.
@@ -2274,6 +2322,11 @@ function writeToPRSheet(prNo) {
   if (first.purpose) {
     prSheet.getRange(43, 1).setValue("Purpose: " + first.purpose);
   }
+
+  // ── Signatories ────────────────────────────────────────────
+  var signatory = getSignatoryForOffice(first.office);
+  prSheet.getRange("B46").setValue(signatory.name || "");
+  prSheet.getRange("B47").setValue(signatory.position || "");
 
   // Grand Total formula — SUM of col G (Total Cost) across all written item rows
   var lastDataRow    = DATA_START_ROW + items.length - 1;
