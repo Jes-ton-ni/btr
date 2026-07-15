@@ -4,6 +4,21 @@ function log() {
   if (DEBUG) Logger.log.apply(Logger, arguments);
 }
 
+var DATA_SHEET_URL = "https://docs.google.com/spreadsheets/d/1QfxKCRJGsh3dHOHLQXBZJIvT1MewHw874ongkEULiag/edit?usp=sharing";
+
+function getDataSpreadsheet() {
+  return SpreadsheetApp.openByUrl(DATA_SHEET_URL);
+}
+
+function hideDataSheet(name) {
+  try {
+    var sheet = getDataSpreadsheet().getSheetByName(name);
+    if (sheet && !sheet.isSheetHidden()) sheet.hideSheet();
+  } catch (e) {
+    Logger.log("Could not hide data sheet '" + name + "': " + e);
+  }
+}
+
 function getCurrentUser() {
   return Session.getEffectiveUser().getEmail();
 }
@@ -43,37 +58,16 @@ function getOfficeHeaderInfo() {
 ================================= */
 
 function ensureUsersSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getDataSpreadsheet();
   var userSheet = ss.getSheetByName("User");
   if (userSheet) return userSheet;
 
-  // --- Auto-migrate from old "USERS" sheet if present ---
-  var oldSheet = ss.getSheetByName("USERS");
-  if (oldSheet) {
-    var oldData = oldSheet.getDataRange().getValues();
-    userSheet = ss.insertSheet("User");
-    userSheet.appendRow(["User", "Username", "Password", "Full Name", "Email", "Office", "Office Address", "Position", "Role", "Account Status", "Last Login", "Date Created"]);
-    userSheet.setFrozenRows(1);
-    for (var i = 1; i < oldData.length; i++) {
-      var oldUser = String(oldData[i][0] || '').trim();
-      var oldHash = String(oldData[i][1] || '').trim();
-      var oldName = String(oldData[i][2] || '').trim();
-      var oldEmail = String(oldData[i][3] || '').trim();
-      var role = oldUser.toLowerCase() === 'admin' ? 'Admin' : 'User';
-      userSheet.appendRow([oldUser, oldUser, oldHash, oldName, oldEmail, '', '', '', role, 'Active', '', '']);
-    }
-    ss.deleteSheet(oldSheet);
-    hideAndProtectSheet(userSheet);
-    return userSheet;
-  }
-
-  // --- Fresh creation ---
   userSheet = ss.insertSheet("User");
   userSheet.appendRow(["User", "Username", "Password", "Full Name", "Email", "Office", "Office Address", "Position", "Role", "Account Status", "Last Login", "Date Created"]);
   userSheet.setFrozenRows(1);
   var adminHash = hashPassword("admin123");
   userSheet.appendRow(["admin", "admin", adminHash, "Administrator", "", "", "", "", "Admin", "Active", "", new Date().toISOString()]);
-  hideAndProtectSheet(userSheet);
+  hideDataSheet("User");
   return userSheet;
 }
 
@@ -255,7 +249,6 @@ function resetUserPassword(row, newPassword) {
 
 function showForm() {
   ensureUsersSheet();
-  hideAndProtectSystemSheets();
   const html = HtmlService
     .createHtmlOutputFromFile('form')
     .setWidth(2000)
@@ -285,7 +278,6 @@ function parseNum(v) {
 }
 
 function onOpen() {
-  hideAndProtectSystemSheets();
   SpreadsheetApp.getUi()
     .createMenu('My Menu')
     .addItem('Download Canvass', 'downloadCanvass')
@@ -400,7 +392,7 @@ function getNextUniquePONo(prNo, reserved) {
   }
 
   // Also check AOQ_SupplierData column J for existing PO Nos and track max NNN
-  var aoqDataSheet = ss.getSheetByName("AOQ_SupplierData");
+  var aoqDataSheet = getDataSpreadsheet().getSheetByName("AOQ_SupplierData");
   if (aoqDataSheet) {
     var aoqData = aoqDataSheet.getDataRange().getValues();
     for (var i = 1; i < aoqData.length; i++) {
@@ -644,7 +636,7 @@ function searchSuppliersByPR(prNo) {
   }
 
   // Read supplier selections from AOQ_SupplierData
-  const aoqSheet = ss.getSheetByName("AOQ_SupplierData");
+  const aoqSheet = getDataSpreadsheet().getSheetByName("AOQ_SupplierData");
   if (!aoqSheet) return { prNo: cleanPrNo(prNo), suppliers: [] };
 
   const aoqData = aoqSheet.getDataRange().getValues();
@@ -749,7 +741,7 @@ function updatePOFieldsForSupplier(prNo, supplier, poFields) {
   }
 
   // Also update AOQ_SupplierData to keep in sync
-  const aoqSheet = ss.getSheetByName("AOQ_SupplierData");
+  const aoqSheet = getDataSpreadsheet().getSheetByName("AOQ_SupplierData");
   if (aoqSheet) {
     const aoqData = aoqSheet.getDataRange().getValues();
     for (let i = 1; i < aoqData.length; i++) {
@@ -1377,7 +1369,7 @@ function writeToAOQSheetWithExistingData(prNo) {
 
   } else {
     // Fallback: read supplier data from AOQ_SupplierData when AOQ sheet has a different PR
-    var aoqDataSheet = ss.getSheetByName("AOQ_SupplierData");
+    var aoqDataSheet = getDataSpreadsheet().getSheetByName("AOQ_SupplierData");
     if (aoqDataSheet) {
       var aoqData = aoqDataSheet.getDataRange().getValues();
       if (aoqData.length > 0 && String(aoqData[0][0] || '').toLowerCase() === 'pr no.') {
@@ -1513,7 +1505,7 @@ function loadSupplierPricing(prNo) {
   }
 
   // --- Fallback: reconstruct from AOQ_SupplierData sheet ---
-  var aoqDataSheet = ss.getSheetByName("AOQ_SupplierData");
+  var aoqDataSheet = getDataSpreadsheet().getSheetByName("AOQ_SupplierData");
   if (aoqDataSheet) {
     var aoqData = aoqDataSheet.getDataRange().getValues();
     var nPrNo2 = cleanPrNo(prNo).toLowerCase();
@@ -1642,7 +1634,7 @@ function loadSupplierPricing(prNo) {
 ================================= */
 function writeToPOSheet(prNo, supplierName) {
   var ss           = SpreadsheetApp.getActiveSpreadsheet();
-  var aoqDataSheet = ss.getSheetByName("AOQ_SupplierData");
+  var aoqDataSheet = getDataSpreadsheet().getSheetByName("AOQ_SupplierData");
   var summarySheet = ss.getSheetByName("SUMMARY");
   var poSheet      = ss.getSheetByName("Purchase Order");
 
@@ -1859,13 +1851,13 @@ function saveSupplierData(supplierRows) {
  * single-supplier limit of the SUMMARY sheet.
  */
 function ensureAOQSupplierDataSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getDataSpreadsheet();
   var sheet = ss.getSheetByName("AOQ_SupplierData");
   if (sheet) return sheet;
   sheet = ss.insertSheet("AOQ_SupplierData");
   sheet.appendRow(["PR No.", "Supplier Name", "Supplier Address", "TIN", "Item Description", "Unit Cost", "Total Cost", "Selected", "Col Idx", "PO No."]);
   sheet.setFrozenRows(1);
-  hideAndProtectSheet(sheet);
+  hideDataSheet("AOQ_SupplierData");
   return sheet;
 }
 
@@ -1878,13 +1870,13 @@ function ensureAOQSupplierDataSheet() {
    Signatory Position
 ================================= */
 function ensureHeaderSignatoriesSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getDataSpreadsheet();
   var sheet = ss.getSheetByName("Header/Signatories");
   if (sheet) return sheet;
   sheet = ss.insertSheet("Header/Signatories");
   sheet.appendRow(["ID", "Office Name", "Office Address", "Signatory Name", "Signatory Position"]);
   sheet.setFrozenRows(1);
-  hideAndProtectSheet(sheet);
+  hideDataSheet("Header/Signatories");
   return sheet;
 }
 
@@ -1919,42 +1911,13 @@ function getSignatoryForOffice(office) {
 
 /* =================================
    HIDE & PROTECT SYSTEM SHEETS
-   Hides and protects specified sheets
-   from user visibility and editing.
-   Script can still read/write.
+   Note: System sheets (User, Header/
+   Signatories, AOQ_SupplierData) now
+   live in the Data Spreadsheet
+   (configured via DATA_SHEET_URL).
+   System sheets are hidden in the
+   data layer, not the template.
 ================================= */
-function hideAndProtectSystemSheets() {
-  var systemSheets = ["AOQ_SupplierData", "Header/Signatories", "User"];
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  systemSheets.forEach(function(name) {
-    hideAndProtectSheet(ss.getSheetByName(name));
-  });
-}
-
-function hideAndProtectSheet(sheet) {
-  if (!sheet) return;
-  try {
-    sheet.hideSheet();
-  } catch (e) {
-    Logger.log("Could not hide sheet '" + sheet.getName() + "': " + e);
-  }
-
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var owner = ss.getOwner();
-  var currentUser = Session.getEffectiveUser().getEmail();
-  if (!owner || owner.getEmail() !== currentUser) return;
-
-  try {
-    var existingProtections = sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
-    for (var i = 0; i < existingProtections.length; i++) {
-      existingProtections[i].remove();
-    }
-    var protection = sheet.protect().setDescription("System sheet — do not edit");
-    Logger.log("Protected sheet '" + sheet.getName() + "' as owner");
-  } catch (e) {
-    Logger.log("Could not protect sheet '" + sheet.getName() + "': " + e);
-  }
-}
 
 /* =================================
    UPDATE SUPPLIER SELECTION
