@@ -12,6 +12,7 @@ function getCurrentUserInfo(email) {
   var sheet = ensureUsersSheet();
   var data = sheet.getDataRange().getValues();
 
+  if (!email) email = Session.getEffectiveUser().getEmail();
   email = email.toLowerCase().trim();
 
   for (var i = 1; i < data.length; i++) {
@@ -21,13 +22,20 @@ function getCurrentUserInfo(email) {
         fullName: data[i][3],
         email: data[i][4],
         office: data[i][5],
-        position: data[i][6],
-        role: data[i][7]
+        officeAddress: data[i][6],
+        position: data[i][7],
+        role: data[i][8]
       };
     }
   }
 
   return null;
+}
+
+function getOfficeHeaderInfo() {
+  var info = getCurrentUserInfo();
+  if (info) return { office: info.office, officeAddress: info.officeAddress };
+  return { office: '', officeAddress: '' };
 }
 
 /* =================================
@@ -44,7 +52,7 @@ function ensureUsersSheet() {
   if (oldSheet) {
     var oldData = oldSheet.getDataRange().getValues();
     userSheet = ss.insertSheet("User");
-    userSheet.appendRow(["User", "Username", "Password", "Full Name", "Email", "Office", "Position", "Role", "Account Status", "Last Login", "Date Created"]);
+    userSheet.appendRow(["User", "Username", "Password", "Full Name", "Email", "Office", "Office Address", "Position", "Role", "Account Status", "Last Login", "Date Created"]);
     userSheet.setFrozenRows(1);
     for (var i = 1; i < oldData.length; i++) {
       var oldUser = String(oldData[i][0] || '').trim();
@@ -52,7 +60,7 @@ function ensureUsersSheet() {
       var oldName = String(oldData[i][2] || '').trim();
       var oldEmail = String(oldData[i][3] || '').trim();
       var role = oldUser.toLowerCase() === 'admin' ? 'Admin' : 'User';
-      userSheet.appendRow([oldUser, oldUser, oldHash, oldName, oldEmail, '', '', role, 'Active', '', '']);
+      userSheet.appendRow([oldUser, oldUser, oldHash, oldName, oldEmail, '', '', '', role, 'Active', '', '']);
     }
     ss.deleteSheet(oldSheet);
     hideAndProtectSheet(userSheet);
@@ -61,10 +69,10 @@ function ensureUsersSheet() {
 
   // --- Fresh creation ---
   userSheet = ss.insertSheet("User");
-  userSheet.appendRow(["User", "Username", "Password", "Full Name", "Email", "Office", "Position", "Role", "Account Status", "Last Login", "Date Created"]);
+  userSheet.appendRow(["User", "Username", "Password", "Full Name", "Email", "Office", "Office Address", "Position", "Role", "Account Status", "Last Login", "Date Created"]);
   userSheet.setFrozenRows(1);
   var adminHash = hashPassword("admin123");
-  userSheet.appendRow(["admin", "admin", adminHash, "Administrator", "", "", "", "Admin", "Active", "", new Date().toISOString()]);
+  userSheet.appendRow(["admin", "admin", adminHash, "Administrator", "", "", "", "", "Admin", "Active", "", new Date().toISOString()]);
   hideAndProtectSheet(userSheet);
   return userSheet;
 }
@@ -81,18 +89,19 @@ function validateLogin(login, password) {
   for (var i = 1; i < data.length; i++) {
     var username = String(data[i][1] || '').trim().toLowerCase();
     var email    = String(data[i][4] || '').trim().toLowerCase();
-    var status   = String(data[i][8] || '').trim();
+    var status   = String(data[i][9] || '').trim();
     var loginLC  = login.trim().toLowerCase();
     if (username === loginLC || email === loginLC) {
       if (status !== '' && status.toLowerCase() !== 'active') return null;
       if (String(data[i][2] || '').trim() !== inputHash) return null;
-      sheet.getRange(i + 1, 10).setValue(new Date().toISOString());
+      sheet.getRange(i + 1, 11).setValue(new Date().toISOString());
       return {
-        username:  String(data[i][1]).trim(),
-        fullName:  String(data[i][3] || data[i][1]).trim(),
-        email:     String(data[i][4] || '').trim(),
-        office:    String(data[i][5] || '').trim(),
-        role:      String(data[i][7] || '').trim()
+        username:      String(data[i][1]).trim(),
+        fullName:      String(data[i][3] || data[i][1]).trim(),
+        email:         String(data[i][4] || '').trim(),
+        office:        String(data[i][5] || '').trim(),
+        officeAddress: String(data[i][6] || '').trim(),
+        role:          String(data[i][8] || '').trim()
       };
     }
   }
@@ -108,7 +117,7 @@ function addUser(username, password, fullName, email) {
     }
   }
   var hash = hashPassword(password);
-  sheet.appendRow([username.trim(), username.trim(), hash, fullName.trim(), email.trim(), '', '', 'User', 'Active', '', new Date().toISOString()]);
+  sheet.appendRow([username.trim(), username.trim(), hash, fullName.trim(), email.trim(), '', '', '', 'User', 'Active', '', new Date().toISOString()]);
   return "User added successfully.";
 }
 
@@ -124,11 +133,12 @@ function listUsers() {
       fullName:      String(data[i][3] || '').trim(),
       email:         String(data[i][4] || '').trim(),
       office:        String(data[i][5] || '').trim(),
-      position:      String(data[i][6] || '').trim(),
-      role:          String(data[i][7] || '').trim(),
-      accountStatus: String(data[i][8] || '').trim(),
-      lastLogin:     String(data[i][9] || '').trim(),
-      dateCreated:   String(data[i][10] || '').trim()
+      officeAddress: String(data[i][6] || '').trim(),
+      position:      String(data[i][7] || '').trim(),
+      role:          String(data[i][8] || '').trim(),
+      accountStatus: String(data[i][9] || '').trim(),
+      lastLogin:     String(data[i][10] || '').trim(),
+      dateCreated:   String(data[i][11] || '').trim()
     });
   }
   return users;
@@ -158,6 +168,7 @@ function saveUser(data) {
   row.push(fullNameTrim);
   row.push(emailTrim);
   row.push((data.office || '').trim());
+  row.push((data.officeAddress || '').trim());
   row.push((data.position || '').trim());
   row.push((data.role || 'User').trim());
   row.push((data.accountStatus || 'Active').trim());
@@ -165,14 +176,14 @@ function saveUser(data) {
     row.push('');
     row.push(new Date().toISOString());
   } else {
-    row.push(String(allData[data.row - 1][9] || '').trim());
     row.push(String(allData[data.row - 1][10] || '').trim());
+    row.push(String(allData[data.row - 1][11] || '').trim());
   }
 
   if (isNew) {
     sheet.appendRow(row);
   } else {
-    sheet.getRange(data.row, 1, 1, 11).setValues([row]);
+    sheet.getRange(data.row, 1, 1, 12).setValues([row]);
   }
   return "User saved successfully.";
 }
@@ -183,9 +194,9 @@ function deleteUser(row) {
   if (row < 2 || row > data.length) return "Invalid user row.";
   var remainingAdmins = 0;
   for (var i = 1; i < data.length; i++) {
-    if ((i + 1) !== row && String(data[i][7] || '').trim().toLowerCase() === 'admin') remainingAdmins++;
+    if ((i + 1) !== row && String(data[i][8] || '').trim().toLowerCase() === 'admin') remainingAdmins++;
   }
-  if (String(data[row - 1][7] || '').trim().toLowerCase() === 'admin' && remainingAdmins === 0) {
+  if (String(data[row - 1][8] || '').trim().toLowerCase() === 'admin' && remainingAdmins === 0) {
     return "Cannot delete the last admin user.";
   }
   sheet.deleteRow(row);
@@ -971,6 +982,10 @@ function writeToRFQSheet(prNo) {
   if (!summarySheet) return "SUMMARY sheet not found.";
   if (!rfqSheet)     return "RFQ sheet not found.";
 
+  var officeInfo = getOfficeHeaderInfo();
+  rfqSheet.getRange("A5").setValue(officeInfo.office || "");
+  rfqSheet.getRange("A6").setValue(officeInfo.officeAddress || "");
+
   var summaryData = summarySheet.getDataRange().getValues();
   var items = [];
   var nPrNo = cleanPrNo(prNo).toLowerCase();
@@ -1087,6 +1102,10 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
 
   if (!summarySheet) return "SUMMARY sheet not found.";
   if (!aoqSheet)     return "Abstract of Quotations sheet not found.";
+
+  var officeInfo = getOfficeHeaderInfo();
+  aoqSheet.getRange("A5").setValue(officeInfo.office || "");
+  aoqSheet.getRange("A6").setValue(officeInfo.officeAddress || "");
 
   log("writeToAOQSheet called — prNo: " + prNo);
   log("suppliersJson: " + (suppliersJson ? suppliersJson.substring(0, 200) : "EMPTY/UNDEFINED"));
@@ -1611,6 +1630,10 @@ function writeToPOSheet(prNo, supplierName) {
   if (!summarySheet) return "SUMMARY sheet not found.";
   if (!poSheet)      return "Purchase Order sheet not found.";
 
+  var officeInfo = getOfficeHeaderInfo();
+  poSheet.getRange("A5").setValue(officeInfo.office || "");
+  poSheet.getRange("A6").setValue(officeInfo.officeAddress || "");
+
   var aoqData = aoqDataSheet.getDataRange().getValues();
   var nPrNo = cleanPrNo(prNo).toLowerCase();
 
@@ -2074,6 +2097,10 @@ function createSupplierRFQSheet(prNo, supplierName) {
   var rfqSheet = rfqTemplate.copyTo(ss);
   rfqSheet.setName(sheetName);
 
+  var officeInfo = getOfficeHeaderInfo();
+  rfqSheet.getRange("A5").setValue(officeInfo.office || "");
+  rfqSheet.getRange("A6").setValue(officeInfo.officeAddress || "");
+
   var DATA_START_ROW = 18;
 
   // Populate the copy with same layout as writeToRFQSheet
@@ -2135,6 +2162,10 @@ function writeToPRSheet(prNo) {
   var prSheet      = ss.getSheetByName("Purchase Request");
 
   if (!summarySheet || !prSheet) return "Sheet not found.";
+
+  var officeInfo = getOfficeHeaderInfo();
+  prSheet.getRange("A5").setValue(officeInfo.office || "");
+  prSheet.getRange("A6").setValue(officeInfo.officeAddress || "");
 
   var summaryData = summarySheet.getDataRange().getValues();
 

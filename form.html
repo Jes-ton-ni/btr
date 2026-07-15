@@ -1738,27 +1738,15 @@
         if (result) {
           window._sessionUser = result;
           document.getElementById('currentUser').value = result.username;
-          google.script.run
-            .withSuccessHandler(function(info) {
-              if (info) {
-                window._sessionUser = Object.assign({}, result, info);
-                document.getElementById('userDisplay').textContent = '\u{1F464} ' + (info.fullName || result.fullName);
-                var role = (info.role || result.role || '').toLowerCase();
-                document.getElementById('adminUserCard').style.display = (role === 'admin') ? 'block' : 'none';
-                if (window._sessionUser) {
-                  var greeting = document.getElementById('greetingSelector');
-                  if (greeting) greeting.textContent = 'Good day, ' + (info.fullName || result.fullName) + '!';
-                }
-              }
-            })
-            .withFailureHandler(function() {})
-            .getCurrentUserInfo();
           document.getElementById('userDisplay').textContent = '\u{1F464} ' + result.fullName;
           document.getElementById('userDisplay').style.cursor = 'pointer';
           document.getElementById('userDisplay').title = 'Click to change password';
           document.getElementById('userDisplay').onclick = openChangePasswordModal;
           document.getElementById('logoutLink').style.display = 'inline';
-          document.getElementById('adminUserCard').style.display = (result.role && result.role.toLowerCase() === 'admin') ? 'block' : 'none';
+          var role = (result.role || '').toLowerCase();
+          document.getElementById('adminUserCard').style.display = (role === 'admin') ? 'block' : 'none';
+          var greeting = document.getElementById('greetingSelector');
+          if (greeting) greeting.textContent = 'Good day, ' + result.fullName + '!';
           if (remember) {
             localStorage.setItem('procurement_remember', JSON.stringify({ login: username, password: password }));
           } else {
@@ -3021,7 +3009,8 @@
       + '<div class="agency-name">KAGAWARAN NG PANANALAPI</div>'
       + '<div class="bureau-name">KAWANIHAN NG INGATANG-YAMAN</div>'
       + '<div class="bureau-sub">(BUREAU OF THE TREASURY)</div>'
-      + '<div class="bureau-sub">Regional Office No. V — Legazpi City</div>'
+      + '<div class="bureau-sub">' + (window._sessionUser && window._sessionUser.office || 'Regional Office No. V — Legazpi City') + '</div>'
+      + '<div class="bureau-sub">' + (window._sessionUser && window._sessionUser.officeAddress || '') + '</div>'
       + '</div>'
 
       + '<div class="pr-title">PURCHASE REQUEST</div>'
@@ -3114,7 +3103,8 @@
       + '<div class="agency-name">KAGAWARAN NG PANANALAPI</div>'
       + '<div class="bureau-name">KAWANIHAN NG INGATANG-YAMAN</div>'
       + '<div class="bureau-sub">(BUREAU OF THE TREASURY)</div>'
-      + '<div class="bureau-sub">Regional Office No. V — Legazpi City</div>'
+      + '<div class="bureau-sub">' + (window._sessionUser && window._sessionUser.office || 'Regional Office No. V — Legazpi City') + '</div>'
+      + '<div class="bureau-sub">' + (window._sessionUser && window._sessionUser.officeAddress || '') + '</div>'
       + '</div>'
 
       + '<div class="pr-title">' + icon + ' ' + typeName.toUpperCase() + '</div>'
@@ -3272,7 +3262,8 @@
       + '<div class="agency-name">KAGAWARAN NG PANANALAPI</div>'
       + '<div class="bureau-name">KAWANIHAN NG INGATANG-YAMAN</div>'
       + '<div class="bureau-sub">(BUREAU OF THE TREASURY)</div>'
-      + '<div class="bureau-sub">Regional Office No. V — Legazpi City</div>'
+      + '<div class="bureau-sub">' + (window._sessionUser && window._sessionUser.office || 'Regional Office No. V — Legazpi City') + '</div>'
+      + '<div class="bureau-sub">' + (window._sessionUser && window._sessionUser.officeAddress || '') + '</div>'
       + '</div>'
       + '<div class="pr-title">📊 ABSTRACT OF QUOTATIONS</div>'
       + '<div class="pr-info-bar">'
@@ -4356,6 +4347,7 @@
             '<td>' + escHtml(u.username) + '</td>' +
             '<td>' + escHtml(u.email || '-') + '</td>' +
             '<td>' + escHtml(u.office || '-') + '</td>' +
+            '<td>' + escHtml(u.officeAddress || '-') + '</td>' +
             '<td>' + roleBadge + '</td>' +
             '<td>' + statusBadge + '</td>' +
             '<td>' + lastLogin + '</td>' +
@@ -4384,6 +4376,7 @@
     document.getElementById('userFormFullName').value = '';
     document.getElementById('userFormEmail').value = '';
     document.getElementById('userFormOffice').value = '';
+    document.getElementById('userFormOfficeAddress').value = '';
     document.getElementById('userFormPosition').value = '';
     document.getElementById('userFormRole').value = 'User';
     document.getElementById('userFormStatus').value = 'Active';
@@ -4399,6 +4392,7 @@
             document.getElementById('userFormFullName').value = u.fullName;
             document.getElementById('userFormEmail').value = u.email;
             document.getElementById('userFormOffice').value = u.office;
+            document.getElementById('userFormOfficeAddress').value = u.officeAddress;
             document.getElementById('userFormPosition').value = u.position;
             document.getElementById('userFormRole').value = u.role;
             document.getElementById('userFormStatus').value = u.accountStatus;
@@ -4428,6 +4422,7 @@
       fullName: fullName,
       email: document.getElementById('userFormEmail').value.trim(),
       office: document.getElementById('userFormOffice').value.trim(),
+      officeAddress: document.getElementById('userFormOfficeAddress').value.trim(),
       position: document.getElementById('userFormPosition').value.trim(),
       role: document.getElementById('userFormRole').value,
       accountStatus: document.getElementById('userFormStatus').value,
@@ -4636,6 +4631,7 @@
         <th>Username</th>
         <th>Email</th>
         <th>Office</th>
+        <th>Office Address</th>
         <th>Role</th>
         <th>Status</th>
         <th>Last Login</th>
@@ -4671,7 +4667,8 @@
         <div class="field">
           <label>Office</label>
           <select id="userFormOffice"> 
-            <option value="Regional office">Regional Office</option>
+            <option value="">-- Select Office --</option>
+            <option value="Regional Office">Regional Office</option>
             <option value="Albay Provincial Office">Albay Provincial Office</option>
             <option value="Camarines Norte Provincial Office">Camarines Norte Provincial Office</option>
             <option value="Camarines Sur Provincial Office">Camarines Sur Provincial Office</option>
@@ -4679,6 +4676,10 @@
             <option value="Masbate Provincial Office">Masbate Provincial Office</option>
             <option value="Sorsogon Provincial Office">Sorsogon Provincial Office</option>
           </select>
+        </div>
+        <div class="field">
+          <label>Office Address</label>
+          <input type="text" id="userFormOfficeAddress" placeholder="Office Address">
         </div>
       </div>
       <div class="user-form-row">
