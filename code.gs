@@ -94,7 +94,7 @@ function validateLogin(login, password) {
     if (username === loginLC || email === loginLC) {
       if (status !== '' && status.toLowerCase() !== 'active') return null;
       if (String(data[i][2] || '').trim() !== inputHash) return null;
-      sheet.getRange(i + 1, 11).setValue(new Date().toISOString());
+      try { sheet.getRange(i + 1, 11).setValue(new Date().toISOString()); } catch(e) {}
       return {
         username:      String(data[i][1]).trim(),
         fullName:      String(data[i][3] || data[i][1]).trim(),
@@ -117,7 +117,11 @@ function addUser(username, password, fullName, email) {
     }
   }
   var hash = hashPassword(password);
-  sheet.appendRow([username.trim(), username.trim(), hash, fullName.trim(), email.trim(), '', '', '', 'User', 'Active', '', new Date().toISOString()]);
+  try {
+    sheet.appendRow([username.trim(), username.trim(), hash, fullName.trim(), email.trim(), '', '', '', 'User', 'Active', '', new Date().toISOString()]);
+  } catch(e) {
+    return "User could not be added: insufficient permissions.";
+  }
   return "User added successfully.";
 }
 
@@ -180,10 +184,14 @@ function saveUser(data) {
     row.push(String(allData[data.row - 1][11] || '').trim());
   }
 
-  if (isNew) {
-    sheet.appendRow(row);
-  } else {
-    sheet.getRange(data.row, 1, 1, 12).setValues([row]);
+  try {
+    if (isNew) {
+      sheet.appendRow(row);
+    } else {
+      sheet.getRange(data.row, 1, 1, 12).setValues([row]);
+    }
+  } catch(e) {
+    return "User could not be saved: insufficient permissions.";
   }
   return "User saved successfully.";
 }
@@ -199,7 +207,11 @@ function deleteUser(row) {
   if (String(data[row - 1][8] || '').trim().toLowerCase() === 'admin' && remainingAdmins === 0) {
     return "Cannot delete the last admin user.";
   }
-  sheet.deleteRow(row);
+  try {
+    sheet.deleteRow(row);
+  } catch(e) {
+    return "User could not be deleted: insufficient permissions.";
+  }
   return "User deleted successfully.";
 }
 
@@ -212,7 +224,11 @@ function changeOwnPassword(username, oldPassword, newPassword) {
     if (uname.toLowerCase() === username.trim().toLowerCase()) {
       if (String(data[i][2] || '').trim() !== oldHash) return "Current password is incorrect.";
       var newHash = hashPassword(newPassword);
-      sheet.getRange(i + 1, 3).setValue(newHash);
+      try {
+        sheet.getRange(i + 1, 3).setValue(newHash);
+      } catch(e) {
+        return "Password change failed: insufficient permissions.";
+      }
       return "Password changed successfully.";
     }
   }
@@ -224,7 +240,11 @@ function resetUserPassword(row, newPassword) {
   var data = sheet.getDataRange().getValues();
   if (row < 2 || row > data.length) return "Invalid user row.";
   var newHash = hashPassword(newPassword);
-  sheet.getRange(row, 3).setValue(newHash);
+  try {
+    sheet.getRange(row, 3).setValue(newHash);
+  } catch(e) {
+    return "Password reset failed: insufficient permissions.";
+  }
   var uname = String(data[row - 1][1] || '').trim();
   return "Password for " + uname + " reset successfully.";
 }
@@ -1930,10 +1950,6 @@ function hideAndProtectSheet(sheet) {
       existingProtections[i].remove();
     }
     var protection = sheet.protect().setDescription("System sheet — do not edit");
-    if (protection.canDomainEdit()) {
-      protection.setDomainEdit(false);
-    }
-    protection.removeEditors(protection.getEditors());
     Logger.log("Protected sheet '" + sheet.getName() + "' as owner");
   } catch (e) {
     Logger.log("Could not protect sheet '" + sheet.getName() + "': " + e);
