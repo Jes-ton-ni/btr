@@ -4,13 +4,130 @@ function log() {
   if (DEBUG) Logger.log.apply(Logger, arguments);
 }
 
+/* =================================
+   PROPERTY-BASED STORAGE HELPERS
+   Uses PropertiesService.getScriptProperties()
+   instead of hidden sheets — no permission issues.
+================================= */
+
+function getPropsLock_() {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (e) { /* best effort */ }
+  return lock;
+}
+
+function releaseLock_(lock) {
+  try { lock.releaseLock(); } catch (e) { /* ignore */ }
+}
+
+/* ── USERS ──
+   Each user stored as: User_<username> = JSON object
+   loadUsers() returns 2D array matching old sheet format for compatibility.
+*/
+
+function loadUsers() {
+  var props = PropertiesService.getScriptProperties().getProperties();
+  var header = ["User", "Username", "Password", "Full Name", "Email", "Office", "Office Address", "Position", "Role", "Account Status", "Last Login", "Date Created"];
+  var users = [header];
+  for (var key in props) {
+    if (props.hasOwnProperty(key) && key.indexOf('User_') === 0) {
+      try {
+        var u = JSON.parse(props[key]);
+        users.push([u.user, u.username, u.password, u.fullName, u.email, u.office, u.officeAddress, u.position, u.role, u.accountStatus, u.lastLogin, u.dateCreated]);
+      } catch (e) {
+        Logger.log("loadUsers: corrupted user key " + key + ": " + e);
+      }
+    }
+  }
+  return users;
+}
+
+function saveUsers(data) {
+  var lock = getPropsLock_();
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var all = props.getProperties();
+    for (var key in all) {
+      if (all.hasOwnProperty(key) && key.indexOf('User_') === 0) {
+        props.deleteProperty(key);
+      }
+    }
+    for (var i = 1; i < data.length; i++) {
+      var r = data[i];
+      var username = String(r[1] || '').trim();
+      if (!username) continue;
+      var obj = {
+        user: String(r[0] || '').trim(),
+        username: username,
+        password: String(r[2] || '').trim(),
+        fullName: String(r[3] || '').trim(),
+        email: String(r[4] || '').trim(),
+        office: String(r[5] || '').trim(),
+        officeAddress: String(r[6] || '').trim(),
+        position: String(r[7] || '').trim(),
+        role: String(r[8] || '').trim(),
+        accountStatus: String(r[9] || '').trim(),
+        lastLogin: String(r[10] || '').trim(),
+        dateCreated: String(r[11] || '').trim()
+      };
+      props.setProperty('User_' + username, JSON.stringify(obj));
+    }
+  } finally {
+    releaseLock_(lock);
+  }
+}
+
+/* ── SIGNATORIES ──
+   All stored as one property: Signatories = JSON array
+   loadSignatories() returns 2D array matching old sheet format.
+*/
+
+function loadSignatories() {
+  var props = PropertiesService.getScriptProperties();
+  var raw = props.getProperty('Signatories');
+  if (!raw) {
+    return [["ID", "Office Name", "Office Address", "Signatory Name", "Signatory Position"]];
+  }
+  try {
+    var arr = JSON.parse(raw);
+    var out = [["ID", "Office Name", "Office Address", "Signatory Name", "Signatory Position"]];
+    for (var i = 0; i < arr.length; i++) {
+      var s = arr[i];
+      out.push([s.id || '', s.officeName || '', s.officeAddress || '', s.signatoryName || '', s.signatoryPosition || '']);
+    }
+    return out;
+  } catch (e) {
+    Logger.log("loadSignatories: corrupted data: " + e);
+    return [["ID", "Office Name", "Office Address", "Signatory Name", "Signatory Position"]];
+  }
+}
+
+function saveSignatories(data) {
+  var lock = getPropsLock_();
+  try {
+    var arr = [];
+    for (var i = 1; i < data.length; i++) {
+      var r = data[i];
+      arr.push({
+        id: String(r[0] || '').trim(),
+        officeName: String(r[1] || '').trim(),
+        officeAddress: String(r[2] || '').trim(),
+        signatoryName: String(r[3] || '').trim(),
+        signatoryPosition: String(r[4] || '').trim()
+      });
+    }
+    PropertiesService.getScriptProperties().setProperty('Signatories', JSON.stringify(arr));
+  } finally {
+    releaseLock_(lock);
+  }
+}
+
 function getCurrentUser() {
   return Session.getEffectiveUser().getEmail();
 }
 
 function getCurrentUserInfo(email) {
-  var sheet = ensureUsersSheet();
-  var data = sheet.getDataRange().getValues();
+  var data = loadUsers();
 
   if (!email) email = Session.getEffectiveUser().getEmail();
   email = email.toLowerCase().trim();
@@ -39,42 +156,42 @@ function getOfficeHeaderInfo() {
 }
 
 /* =================================
-   LOGIN SYSTEM — User Sheet
+   LOGIN SYSTEM — Property-based User Store
 ================================= */
 
-function ensureUsersSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var userSheet = ss.getSheetByName("User");
-  if (userSheet) return userSheet;
+function ensureFirstRun() {
+  var data = loadUsers();
+  if (data.length > 1) return;
 
-  // --- Auto-migrate from old "USERS" sheet if present ---
-  var oldSheet = ss.getSheetByName("USERS");
-  if (oldSheet) {
-    var oldData = oldSheet.getDataRange().getValues();
-    userSheet = ss.insertSheet("User");
-    userSheet.appendRow(["User", "Username", "Password", "Full Name", "Email", "Office", "Office Address", "Position", "Role", "Account Status", "Last Login", "Date Created"]);
-    userSheet.setFrozenRows(1);
-    for (var i = 1; i < oldData.length; i++) {
-      var oldUser = String(oldData[i][0] || '').trim();
-      var oldHash = String(oldData[i][1] || '').trim();
-      var oldName = String(oldData[i][2] || '').trim();
-      var oldEmail = String(oldData[i][3] || '').trim();
-      var role = oldUser.toLowerCase() === 'admin' ? 'Admin' : 'User';
-      userSheet.appendRow([oldUser, oldUser, oldHash, oldName, oldEmail, '', '', '', role, 'Active', '', '']);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var migrated = PropertiesService.getScriptProperties().getProperty('MIGRATED_USERS') === 'true';
+
+  if (migrated) {
+    if (data.length <= 1) {
+      var adminHash = hashPassword("admin123");
+      data.push(["admin", "admin", adminHash, "Administrator", "", "", "", "", "Admin", "Active", "", new Date().toISOString()]);
+      saveUsers(data);
     }
-    ss.deleteSheet(oldSheet);
-    hideAndProtectSheet(userSheet);
-    return userSheet;
+    return;
   }
 
-  // --- Fresh creation ---
-  userSheet = ss.insertSheet("User");
-  userSheet.appendRow(["User", "Username", "Password", "Full Name", "Email", "Office", "Office Address", "Position", "Role", "Account Status", "Last Login", "Date Created"]);
-  userSheet.setFrozenRows(1);
+  // Attempt automatic migration from old sheet
+  var userSheet = ss.getSheetByName("User");
+  if (!userSheet) userSheet = ss.getSheetByName("USERS");
+  if (userSheet) {
+    migrateUsersToProperties();
+    return;
+  }
+
+  // No old sheet — fresh start
   var adminHash = hashPassword("admin123");
-  userSheet.appendRow(["admin", "admin", adminHash, "Administrator", "", "", "", "", "Admin", "Active", "", new Date().toISOString()]);
-  hideAndProtectSheet(userSheet);
-  return userSheet;
+  data.push(["admin", "admin", adminHash, "Administrator", "", "", "", "", "Admin", "Active", "", new Date().toISOString()]);
+  saveUsers(data);
+  PropertiesService.getScriptProperties().setProperty('MIGRATED_USERS', 'true');
+}
+
+function ensureUsersSheet() {
+  ensureFirstRun();
 }
 
 function hashPassword(password) {
@@ -83,8 +200,7 @@ function hashPassword(password) {
 }
 
 function validateLogin(login, password) {
-  var sheet = ensureUsersSheet();
-  var data = sheet.getDataRange().getValues();
+  var data = loadUsers();
   var inputHash = hashPassword(password);
   for (var i = 1; i < data.length; i++) {
     var username = String(data[i][1] || '').trim().toLowerCase();
@@ -94,7 +210,8 @@ function validateLogin(login, password) {
     if (username === loginLC || email === loginLC) {
       if (status !== '' && status.toLowerCase() !== 'active') return null;
       if (String(data[i][2] || '').trim() !== inputHash) return null;
-      sheet.getRange(i + 1, 11).setValue(new Date().toISOString());
+      data[i][10] = new Date().toISOString();
+      saveUsers(data);
       return {
         username:      String(data[i][1]).trim(),
         fullName:      String(data[i][3] || data[i][1]).trim(),
@@ -109,21 +226,20 @@ function validateLogin(login, password) {
 }
 
 function addUser(username, password, fullName, email) {
-  var sheet = ensureUsersSheet();
-  var data = sheet.getDataRange().getValues();
+  var data = loadUsers();
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][1] || '').trim().toLowerCase() === username.trim().toLowerCase()) {
       return "Username already exists.";
     }
   }
   var hash = hashPassword(password);
-  sheet.appendRow([username.trim(), username.trim(), hash, fullName.trim(), email.trim(), '', '', '', 'User', 'Active', '', new Date().toISOString()]);
+  data.push([username.trim(), username.trim(), hash, fullName.trim(), email.trim(), '', '', '', 'User', 'Active', '', new Date().toISOString()]);
+  saveUsers(data);
   return "User added successfully.";
 }
 
 function listUsers() {
-  var sheet = ensureUsersSheet();
-  var data = sheet.getDataRange().getValues();
+  var data = loadUsers();
   var users = [];
   for (var i = 1; i < data.length; i++) {
     users.push({
@@ -145,8 +261,7 @@ function listUsers() {
 }
 
 function saveUser(data) {
-  var sheet = ensureUsersSheet();
-  var allData = sheet.getDataRange().getValues();
+  var allData = loadUsers();
   var isNew = !data.row;
   var usernameTrim = (data.username || '').trim();
   var fullNameTrim = (data.fullName || '').trim();
@@ -175,22 +290,19 @@ function saveUser(data) {
   if (isNew) {
     row.push('');
     row.push(new Date().toISOString());
+    allData.push(row);
   } else {
     row.push(String(allData[data.row - 1][10] || '').trim());
     row.push(String(allData[data.row - 1][11] || '').trim());
+    allData[data.row - 1] = row;
   }
 
-  if (isNew) {
-    sheet.appendRow(row);
-  } else {
-    sheet.getRange(data.row, 1, 1, 12).setValues([row]);
-  }
+  saveUsers(allData);
   return "User saved successfully.";
 }
 
 function deleteUser(row) {
-  var sheet = ensureUsersSheet();
-  var data = sheet.getDataRange().getValues();
+  var data = loadUsers();
   if (row < 2 || row > data.length) return "Invalid user row.";
   var remainingAdmins = 0;
   for (var i = 1; i < data.length; i++) {
@@ -199,20 +311,21 @@ function deleteUser(row) {
   if (String(data[row - 1][8] || '').trim().toLowerCase() === 'admin' && remainingAdmins === 0) {
     return "Cannot delete the last admin user.";
   }
-  sheet.deleteRow(row);
+  data.splice(row - 1, 1);
+  saveUsers(data);
   return "User deleted successfully.";
 }
 
 function changeOwnPassword(username, oldPassword, newPassword) {
-  var sheet = ensureUsersSheet();
-  var data = sheet.getDataRange().getValues();
+  var data = loadUsers();
   var oldHash = hashPassword(oldPassword);
   for (var i = 1; i < data.length; i++) {
     var uname = String(data[i][1] || '').trim();
     if (uname.toLowerCase() === username.trim().toLowerCase()) {
       if (String(data[i][2] || '').trim() !== oldHash) return "Current password is incorrect.";
       var newHash = hashPassword(newPassword);
-      sheet.getRange(i + 1, 3).setValue(newHash);
+      data[i][2] = newHash;
+      saveUsers(data);
       return "Password changed successfully.";
     }
   }
@@ -220,11 +333,11 @@ function changeOwnPassword(username, oldPassword, newPassword) {
 }
 
 function resetUserPassword(row, newPassword) {
-  var sheet = ensureUsersSheet();
-  var data = sheet.getDataRange().getValues();
+  var data = loadUsers();
   if (row < 2 || row > data.length) return "Invalid user row.";
   var newHash = hashPassword(newPassword);
-  sheet.getRange(row, 3).setValue(newHash);
+  data[row - 1][2] = newHash;
+  saveUsers(data);
   var uname = String(data[row - 1][1] || '').trim();
   return "Password for " + uname + " reset successfully.";
 }
@@ -1850,27 +1963,34 @@ function ensureAOQSupplierDataSheet() {
 }
 
 /* =================================
-   HEADER/SIGNATORIES SHEET
-   Stores office-level signatory
-   information for form headers.
-   Columns: ID | Office Name | Office
-   Address | Signatory Name |
-   Signatory Position
+   PROPERTY-BASED SIGNATORIES STORE
+   Replaces the old HeaderSignatories
+   sheet — no external spreadsheet needed.
 ================================= */
+
+function ensureSignatoriesData() {
+  var data = loadSignatories();
+  if (data.length <= 1) {
+    // Try auto-migration from old sheet
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var oldSheet = ss.getSheetByName("HeaderSignatories");
+    if (oldSheet) {
+      migrateSignatoriesToProperties();
+      return;
+    }
+    var defaultSignatories = [
+      ["ID", "Office Name", "Office Address", "Signatory Name", "Signatory Position"]
+    ];
+    saveSignatories(defaultSignatories);
+  }
+}
+
 function ensureHeaderSignatoriesSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Header/Signatories");
-  if (sheet) return sheet;
-  sheet = ss.insertSheet("Header/Signatories");
-  sheet.appendRow(["ID", "Office Name", "Office Address", "Signatory Name", "Signatory Position"]);
-  sheet.setFrozenRows(1);
-  hideAndProtectSheet(sheet);
-  return sheet;
+  ensureSignatoriesData();
 }
 
 function getSignatoryForOffice(office) {
-  var sheet = ensureHeaderSignatoriesSheet();
-  var data = sheet.getDataRange().getValues();
+  var data = loadSignatories();
   var search = String(office || '').trim().toLowerCase();
   if (!search) return { name: '', position: '' };
 
@@ -1897,6 +2017,132 @@ function getSignatoryForOffice(office) {
   return { name: '', position: '' };
 }
 
+function listSignatories() {
+  var data = loadSignatories();
+  var sigs = [];
+  for (var i = 1; i < data.length; i++) {
+    sigs.push({
+      row: i + 1,
+      id:              String(data[i][0] || '').trim(),
+      officeName:      String(data[i][1] || '').trim(),
+      officeAddress:   String(data[i][2] || '').trim(),
+      signatoryName:   String(data[i][3] || '').trim(),
+      signatoryPosition: String(data[i][4] || '').trim()
+    });
+  }
+  return sigs;
+}
+
+function saveSignatory(sData) {
+  var data = loadSignatories();
+  var isNew = !sData.row;
+  var officeName = (sData.officeName || '').trim();
+  var signatoryName = (sData.signatoryName || '').trim();
+  var signatoryPosition = (sData.signatoryPosition || '').trim();
+  var officeAddress = (sData.officeAddress || '').trim();
+
+  if (!officeName) return "Office Name is required.";
+
+  if (isNew) {
+    data.push([officeName, officeName, officeAddress, signatoryName, signatoryPosition]);
+  } else {
+    var idx = sData.row - 1;
+    data[idx] = [officeName, officeName, officeAddress, signatoryName, signatoryPosition];
+  }
+
+  saveSignatories(data);
+  return "Signatory saved successfully.";
+}
+
+function deleteSignatory(row) {
+  var data = loadSignatories();
+  if (row < 2 || row > data.length) return "Invalid signatory row.";
+  data.splice(row - 1, 1);
+  saveSignatories(data);
+  return "Signatory deleted successfully.";
+}
+
+/* =================================
+   MIGRATION — Sheet → Properties
+   One-time called from ensureFirstRun
+   or run manually from Apps Script.
+================================= */
+
+function migrateUsersToProperties() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("User");
+  if (!sheet) {
+    sheet = ss.getSheetByName("USERS");
+    if (!sheet) return "No User or USERS sheet found to migrate.";
+  }
+
+  var oldData = sheet.getDataRange().getValues();
+  if (oldData.length < 2) return "User sheet has no data rows.";
+
+  // Detect old USERS format (2 cols: User, Password)
+  var isOldFormat = (String(oldData[0][0] || '').toLowerCase() === 'user' && String(oldData[0][1] || '').toLowerCase() === 'password' && (oldData[0][2] === undefined || String(oldData[0][2] || '').toLowerCase() !== 'password'));
+
+  var newData = [["User", "Username", "Password", "Full Name", "Email", "Office", "Office Address", "Position", "Role", "Account Status", "Last Login", "Date Created"]];
+
+  if (isOldFormat) {
+    // Old USERS format: User | Password | Name | Email
+    for (var i = 1; i < oldData.length; i++) {
+      var oldUser = String(oldData[i][0] || '').trim();
+      if (!oldUser) continue;
+      var oldHash = String(oldData[i][1] || '').trim();
+      var oldName = String(oldData[i][2] || '').trim();
+      var oldEmail = String(oldData[i][3] || '').trim();
+      var role = oldUser.toLowerCase() === 'admin' ? 'Admin' : 'User';
+      newData.push([oldUser, oldUser, oldHash, oldName, oldEmail, '', '', '', role, 'Active', '', new Date().toISOString()]);
+    }
+  } else {
+    // New User sheet format — copy directly
+    for (var i = 1; i < oldData.length; i++) {
+      var r = oldData[i];
+      if (!r || (!r[0] && !r[1])) continue;
+      var row = [];
+      for (var j = 0; j < 12; j++) {
+        row.push(String(r[j] || '').trim());
+      }
+      newData.push(row);
+    }
+  }
+
+  saveUsers(newData);
+  PropertiesService.getScriptProperties().setProperty('MIGRATED_USERS', 'true');
+
+  return "Migrated " + (newData.length - 1) + " user(s) from sheet to Script Properties.";
+}
+
+function migrateSignatoriesToProperties() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("HeaderSignatories");
+  if (!sheet) return "No Header/Signatories sheet found to migrate.";
+
+  var oldData = sheet.getDataRange().getValues();
+  if (oldData.length < 2) return "Signatories sheet has no data rows.";
+
+  var newData = [["ID", "Office Name", "Office Address", "Signatory Name", "Signatory Position"]];
+  for (var i = 1; i < oldData.length; i++) {
+    var r = oldData[i];
+    if (!r) continue;
+    var row = [];
+    for (var j = 0; j < 5; j++) {
+      row.push(String(r[j] || '').trim());
+    }
+    newData.push(row);
+  }
+
+  saveSignatories(newData);
+  return "Migrated " + (newData.length - 1) + " signatory/ies from sheet to Script Properties.";
+}
+
+function migrateAllToProperties() {
+  var uResult = migrateUsersToProperties();
+  var sResult = migrateSignatoriesToProperties();
+  return "Users: " + uResult + "\nSignatories: " + sResult;
+}
+
 /* =================================
    HIDE & PROTECT SYSTEM SHEETS
    Hides and protects specified sheets
@@ -1904,7 +2150,9 @@ function getSignatoryForOffice(office) {
    Script can still read/write.
 ================================= */
 function hideAndProtectSystemSheets() {
-  var systemSheets = ["AOQ_SupplierData", "Header/Signatories", "User"];
+  ensureFirstRun();
+  ensureSignatoriesData();
+  var systemSheets = ["AOQ_SupplierData"];
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   systemSheets.forEach(function(name) {
     hideAndProtectSheet(ss.getSheetByName(name));

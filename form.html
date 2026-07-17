@@ -871,6 +871,10 @@
     .user-admin-card { display: none; border-color: #e8a317; }
     .user-admin-card:hover { border-color: #c68a12; background: #fff8e8; }
     .user-admin-card .tc-label { font-size: 28px; }
+
+    .signatory-admin-card { display: none; border-color: #6a1b9a; }
+    .signatory-admin-card:hover { border-color: #4a148c; background: #f3e5f5; }
+    .signatory-admin-card .tc-label { font-size: 28px; }
     .users-table {
       width: 100%;
       border-collapse: collapse;
@@ -1081,6 +1085,10 @@
     <div class="type-card user-admin-card" id="adminUserCard" onclick="openUserManagement()">
       <div class="tc-icon">👥</div>
       <div class="tc-label">User Management</div>
+    </div>
+    <div class="type-card signatory-admin-card" id="adminSignatoryCard" onclick="openSignatoryManagement()">
+      <div class="tc-icon">✍️</div>
+      <div class="tc-label">Signatories</div>
     </div>
   </div>
 
@@ -1492,8 +1500,9 @@
         </select>
         <input type="text" id="rfq_otherPaymentTerm" placeholder="Specify Payment Term" style="display:none;margin-top:6px;">
 
-        </div>
-    </div>
+  </div>
+</div>
+</html>
     <div class="btn-area">
       <!-- FIX: VIEW FORM opens only the RFQ form view -->
       <button class="action success" id="rfq_updateBtn" onclick="updateItem()">UPDATE</button>
@@ -1745,6 +1754,7 @@
           document.getElementById('logoutLink').style.display = 'inline';
           var role = (result.role || '').toLowerCase();
           document.getElementById('adminUserCard').style.display = (role === 'admin') ? 'block' : 'none';
+          document.getElementById('adminSignatoryCard').style.display = (role === 'admin') ? 'block' : 'none';
           var greeting = document.getElementById('greetingSelector');
           if (greeting) greeting.textContent = 'Good day, ' + result.fullName + '!';
           if (remember) {
@@ -1776,6 +1786,7 @@
     document.getElementById('userDisplay').onclick = null;
     document.getElementById('logoutLink').style.display = 'none';
     document.getElementById('adminUserCard').style.display = 'none';
+    document.getElementById('adminSignatoryCard').style.display = 'none';
     document.getElementById('loginError').style.display = 'none';
     localStorage.removeItem('procurement_remember');
     clearForm();
@@ -4462,6 +4473,115 @@
       .deleteUser(row);
   }
 
+  /* ─── SIGNATORIES MANAGEMENT ─── */
+
+  var _editingSignatoryRow = null;
+
+  function openSignatoryManagement() {
+    showScreen('screenSignatories');
+    loadSignatoriesList();
+  }
+
+  function loadSignatoriesList() {
+    google.script.run
+      .withSuccessHandler(function(sigs) {
+        var tbody = document.getElementById('signatoriesTableBody');
+        tbody.innerHTML = '';
+        document.getElementById('signatoriesCount').textContent = sigs.length + ' signatory/ies';
+        sigs.forEach(function(s, idx) {
+          tbody.innerHTML += '<tr>' +
+            '<td>' + (idx + 1) + '</td>' +
+            '<td>' + escHtml(s.officeName) + '</td>' +
+            '<td>' + escHtml(s.officeAddress || '-') + '</td>' +
+            '<td>' + escHtml(s.signatoryName || '-') + '</td>' +
+            '<td>' + escHtml(s.signatoryPosition || '-') + '</td>' +
+            '<td class="action-cell">' +
+              '<button class="edit-btn" onclick="openSignatoryModal(' + s.row + ')">Edit</button>' +
+              '<button class="delete-btn" onclick="deleteSignatoryConfirm(' + s.row + ')">Delete</button>' +
+            '</td>' +
+          '</tr>';
+        });
+      })
+      .withFailureHandler(function(err) {
+        alert('Failed to load signatories: ' + err.message);
+      })
+      .listSignatories();
+  }
+
+  function openSignatoryModal(row) {
+    _editingSignatoryRow = row || null;
+    document.getElementById('signatoryModalTitle').textContent = row ? 'Edit Signatory' : 'Add New Signatory';
+    document.getElementById('sigFormOfficeName').value = '';
+    document.getElementById('sigFormOfficeAddress').value = '';
+    document.getElementById('sigFormSignatoryName').value = '';
+    document.getElementById('sigFormSignatoryPosition').value = '';
+
+    if (row) {
+      google.script.run
+        .withSuccessHandler(function(sigs) {
+          var found = sigs.filter(function(s) { return s.row === row; });
+          if (found.length) {
+            var s = found[0];
+            document.getElementById('sigFormOfficeName').value = s.officeName;
+            document.getElementById('sigFormOfficeAddress').value = s.officeAddress || '';
+            document.getElementById('sigFormSignatoryName').value = s.signatoryName || '';
+            document.getElementById('sigFormSignatoryPosition').value = s.signatoryPosition || '';
+          }
+        })
+        .listSignatories();
+    }
+
+    document.getElementById('signatoryFormModal').style.display = 'flex';
+  }
+
+  function closeSignatoryModal() {
+    document.getElementById('signatoryFormModal').style.display = 'none';
+    _editingSignatoryRow = null;
+  }
+
+  function saveSignatoryItem() {
+    var officeName = document.getElementById('sigFormOfficeName').value.trim();
+    if (!officeName) { alert('Office Name is required.'); return; }
+
+    var data = {
+      row: _editingSignatoryRow || null,
+      officeName: officeName,
+      officeAddress: document.getElementById('sigFormOfficeAddress').value.trim(),
+      signatoryName: document.getElementById('sigFormSignatoryName').value.trim(),
+      signatoryPosition: document.getElementById('sigFormSignatoryPosition').value.trim()
+    };
+
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        if (msg === 'Signatory saved successfully.') {
+          closeSignatoryModal();
+          loadSignatoriesList();
+        } else {
+          alert(msg);
+        }
+      })
+      .withFailureHandler(function(err) {
+        alert('Failed to save signatory: ' + err.message);
+      })
+      .saveSignatory(data);
+  }
+
+  function deleteSignatoryConfirm(row) {
+    if (!confirm('Delete this signatory? This cannot be undone.')) return;
+    google.script.run
+      .withSuccessHandler(function(msg) {
+        if (msg === 'Signatory deleted successfully.') {
+          loadSignatoriesList();
+        } else {
+          alert(msg);
+        }
+      })
+      .withFailureHandler(function(err) {
+        alert('Failed to delete signatory: ' + err.message);
+      })
+      .deleteSignatory(row);
+  }
+
   /* ─── CHANGE PASSWORD (self‑service) ─── */
   function openChangePasswordModal() {
     document.getElementById('chgOldPassword').value = '';
@@ -4723,4 +4843,76 @@
     </div>
   </div>
 </div>
+</html>
+
+<!-- ══════════════════════════════════════════
+     SIGNATORY MANAGEMENT SCREEN
+══════════════════════════════════════════ -->
+<div class="screen" id="screenSignatories">
+  <div class="form-topbar">
+    <button class="back-btn" onclick="showScreen('screenSelector')">← Back</button>
+    <div class="form-label-badge" style="background:#6a1b9a;color:#fff;">✍️ Signatories Management</div>
+  </div>
+  <div class="users-header-bar">
+    <span class="users-count" id="signatoriesCount">0 signatory/ies</span>
+    <button class="users-add-btn" style="background:#6a1b9a;" onclick="openSignatoryModal()">+ Add New Signatory</button>
+  </div>
+  <table class="users-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Office Name</th>
+        <th>Office Address</th>
+        <th>Signatory Name</th>
+        <th>Signatory Position</th>
+        <th style="text-align:center;">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="signatoriesTableBody"></tbody>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SIGNATORY FORM MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay user-form-modal" id="signatoryFormModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header" id="signatoryModalTitle" style="background:#6a1b9a;">Add New Signatory</div>
+    <div class="modal-body">
+      <div class="user-form-row">
+        <div class="field">
+          <label>Office Name *</label>
+          <select id="sigFormOfficeName">
+            <option value="">-- Select Office --</option>
+            <option value="Regional Office">Regional Office</option>
+            <option value="Albay Provincial Office">Albay Provincial Office</option>
+            <option value="Camarines Norte Provincial Office">Camarines Norte Provincial Office</option>
+            <option value="Camarines Sur Provincial Office">Camarines Sur Provincial Office</option>
+            <option value="Catanduanes Provincial Office">Catanduanes Provincial Office</option>
+            <option value="Masbate Provincial Office">Masbate Provincial Office</option>
+            <option value="Sorsogon Provincial Office">Sorsogon Provincial Office</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Office Address</label>
+          <input type="text" id="sigFormOfficeAddress" placeholder="Office Address">
+        </div>
+      </div>
+      <div class="user-form-row">
+        <div class="field">
+          <label>Signatory Name</label>
+          <input type="text" id="sigFormSignatoryName" placeholder="Signatory Name">
+        </div>
+        <div class="field">
+          <label>Signatory Position</label>
+          <input type="text" id="sigFormSignatoryPosition" placeholder="Signatory Position">
+        </div>
+      </div>
+      <div class="user-form-actions">
+        <button class="cancel-btn" onclick="closeSignatoryModal()">Cancel</button>
+        <button class="save-btn" onclick="saveSignatoryItem()">Save</button>
+      </div>
+    </div>
+  </div>
+
 </html>
