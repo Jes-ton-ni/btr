@@ -1940,7 +1940,14 @@
     for (var i = 0; i < officeEl.options.length; i++) {
       if (officeEl.options[i].value === userOffice) { found = true; break; }
     }
-    if (!found) return;
+
+    // If still not found, add it as a dynamic option
+    if (!found) {
+      var opt = document.createElement('option');
+      opt.value = userOffice;
+      opt.text = userOffice;
+      officeEl.appendChild(opt);
+    }
 
     setVal('office', userOffice);
 
@@ -1966,8 +1973,12 @@
 
     google.script.run
       .withSuccessHandler(function(sig) {
-        if (sig && sig.officeAddress) {
-          addrEl.textContent = sig.officeAddress;
+        var addr = (sig && sig.officeAddress) ? sig.officeAddress : '';
+        if (!addr && window._sessionUser && window._sessionUser.office === office) {
+          addr = window._sessionUser.officeAddress || '';
+        }
+        if (addr) {
+          addrEl.textContent = addr;
           addrEl.style.display = 'block';
         } else {
           addrEl.style.display = 'none';
@@ -2273,6 +2284,7 @@
         modeProcurement: item.modeProcurement || '',
         placeDelivery:   item.placeDelivery   || '',
         dateDelivery:    item.dateDelivery    || '',
+        officeAddress:   item.officeAddress   || '',
         userEmail:       item.userEmail       || ''
       };
     });

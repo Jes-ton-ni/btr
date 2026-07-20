@@ -837,8 +837,29 @@ function searchSuppliersByPR(prNo) {
       tin: summaryData[i][15] || '',
       modeProcurement: summaryData[i][16] || '',
       placeDelivery: summaryData[i][17] || '',
-      dateDelivery: formatDate(summaryData[i][18])
+      dateDelivery: formatDate(summaryData[i][18]),
+      officeAddress: ''
     };
+  }
+
+  // Fill officeAddress from signatories
+  var sigsLookup = {};
+  for (var dk in itemLookup) {
+    if (itemLookup.hasOwnProperty(dk)) {
+      var offName = String(itemLookup[dk].office || '').trim();
+      if (offName && sigsLookup[offName] === undefined) {
+        sigsLookup[offName] = '';
+        var sigSearch = normalizeOffice(offName).toLowerCase();
+        var sigs = loadSignatories();
+        for (var si = 1; si < sigs.length; si++) {
+          if (normalizeOffice(String(sigs[si][1] || '').trim()).toLowerCase() === sigSearch) {
+            sigsLookup[offName] = String(sigs[si][2] || '').trim();
+            break;
+          }
+        }
+      }
+      itemLookup[dk].officeAddress = sigsLookup[offName] || '';
+    }
   }
 
   // Read supplier selections from AOQ_SupplierData
@@ -901,7 +922,8 @@ function searchSuppliersByPR(prNo) {
       tin: String(aoqData[i][3] || '').trim(),
       modeProcurement: summaryItem.modeProcurement || '',
       placeDelivery: summaryItem.placeDelivery || '',
-      dateDelivery: summaryItem.dateDelivery || ''
+      dateDelivery: summaryItem.dateDelivery || '',
+      officeAddress: summaryItem.officeAddress || ''
     });
 
     group.itemCount++;
