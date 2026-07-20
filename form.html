@@ -1240,14 +1240,15 @@
         <label>Office *</label>
         <select id="pr_office" onchange="onOfficeChange()">
           <option value="">-- Select Office --</option>
-          <option>Regional Office</option>
-          <option>Albay Provincial Office</option>
-          <option>Camarines Norte Provincial Office</option>
-          <option>Camarines Sur Provincial Office</option>
-          <option>Catanduanes Provincial Office</option>
-          <option>Masbate Provincial Office</option>
-          <option>Sorsogon Provincial Office</option>
+          <option value="Regional Office No. V">Regional Office No. V</option>
+          <option value="Albay Provincial Office">Albay Provincial Office</option>
+          <option value="Camarines Norte Provincial Office">Camarines Norte Provincial Office</option>
+          <option value="Camarines Sur Provincial Office">Camarines Sur Provincial Office</option>
+          <option value="Catanduanes Provincial Office">Catanduanes Provincial Office</option>
+          <option value="Masbate Provincial Office">Masbate Provincial Office</option>
+          <option value="Sorsogon Provincial Office">Sorsogon Provincial Office</option>
         </select>
+        <div class="office-addr" id="pr_officeAddress" style="font-size:13px;color:#555;margin-top:3px;display:none;"></div>
 
         <label>PR No. *</label>
         <input type="text" id="pr_prNo" placeholder="Select Office first" readonly oninput="checkDuplicate()">
@@ -1364,14 +1365,15 @@
         <label>Office *</label>
         <select id="aoq_office">
           <option value="">-- Select Office --</option>
-          <option>Regional Office</option>
-          <option>Albay Provincial Office</option>
-          <option>Camarines Norte Provincial Office</option>
-          <option>Camarines Sur Provincial Office</option>
-          <option>Catanduanes Provincial Office</option>
-          <option>Masbate Provincial Office</option>
-          <option>Sorsogon Provincial Office</option>
+          <option value="Regional Office No. V">Regional Office No. V</option>
+          <option value="Albay Provincial Office">Albay Provincial Office</option>
+          <option value="Camarines Norte Provincial Office">Camarines Norte Provincial Office</option>
+          <option value="Camarines Sur Provincial Office">Camarines Sur Provincial Office</option>
+          <option value="Catanduanes Provincial Office">Catanduanes Provincial Office</option>
+          <option value="Masbate Provincial Office">Masbate Provincial Office</option>
+          <option value="Sorsogon Provincial Office">Sorsogon Provincial Office</option>
         </select>
+        <div class="office-addr" id="aoq_officeAddress" style="font-size:13px;color:#555;margin-top:3px;display:none;"></div>
         <label>PR No. *</label>
         <input type="text" id="aoq_prNo" placeholder="Enter Purchase Request Number">
         <label>Fund Cluster</label>
@@ -1442,14 +1444,15 @@
         <label>Office *</label>
         <select id="rfq_office">
           <option value="">-- Select Office --</option>
-          <option>Regional Office</option>
-          <option>Albay Provincial Office</option>
-          <option>Camarines Norte Provincial Office</option>
-          <option>Camarines Sur Provincial Office</option>
-          <option>Catanduanes Provincial Office</option>
-          <option>Masbate Provincial Office</option>
-          <option>Sorsogon Provincial Office</option>
+          <option value="Regional Office No. V">Regional Office No. V</option>
+          <option value="Albay Provincial Office">Albay Provincial Office</option>
+          <option value="Camarines Norte Provincial Office">Camarines Norte Provincial Office</option>
+          <option value="Camarines Sur Provincial Office">Camarines Sur Provincial Office</option>
+          <option value="Catanduanes Provincial Office">Catanduanes Provincial Office</option>
+          <option value="Masbate Provincial Office">Masbate Provincial Office</option>
+          <option value="Sorsogon Provincial Office">Sorsogon Provincial Office</option>
         </select>
+        <div class="office-addr" id="rfq_officeAddress" style="font-size:13px;color:#555;margin-top:3px;display:none;"></div>
         <label>PR No. *</label>
         <input type="text" id="rfq_prNo" placeholder="Enter Purchase Request Number">
         <label>Fund Cluster</label>
@@ -1523,14 +1526,15 @@
         <label>Office </label>
         <select id="po_office">
           <option value="">-- Select Office --</option>
-          <option>Regional Office</option>
-          <option>Albay Provincial Office</option>
-          <option>Camarines Norte Provincial Office</option>
-          <option>Camarines Sur Provincial Office</option>
-          <option>Catanduanes Provincial Office</option>
-          <option>Masbate Provincial Office</option>
-          <option>Sorsogon Provincial Office</option>
+          <option value="Regional Office No. V">Regional Office No. V</option>
+          <option value="Albay Provincial Office">Albay Provincial Office</option>
+          <option value="Camarines Norte Provincial Office">Camarines Norte Provincial Office</option>
+          <option value="Camarines Sur Provincial Office">Camarines Sur Provincial Office</option>
+          <option value="Catanduanes Provincial Office">Catanduanes Provincial Office</option>
+          <option value="Masbate Provincial Office">Masbate Provincial Office</option>
+          <option value="Sorsogon Provincial Office">Sorsogon Provincial Office</option>
         </select>
+        <div class="office-addr" id="po_officeAddress" style="font-size:13px;color:#555;margin-top:3px;display:none;"></div>
         <label>PR No. </label>
         <input type="text" id="po_prNo" placeholder="Enter Purchase Request Number">
         <label>Fund Cluster</label>
@@ -1914,7 +1918,65 @@
     renderItemsTable();
     clearForm();
 
+    autoFillOfficeFromUser();
+
     showScreen('screenForm');
+  }
+
+  function autoFillOfficeFromUser() {
+    if (!window._sessionUser) return;
+    var userOffice = (window._sessionUser.office || '').trim();
+    if (!userOffice) return;
+
+    var type = document.getElementById('currentFormType').value;
+    var pfx = type.toLowerCase() + '_';
+    var officeEl = document.getElementById(pfx + 'office');
+    if (!officeEl) return;
+
+    // Normalize old office values to match current dropdown
+    if (userOffice === 'Regional Office') userOffice = 'Regional Office No. V';
+
+    var found = false;
+    for (var i = 0; i < officeEl.options.length; i++) {
+      if (officeEl.options[i].value === userOffice) { found = true; break; }
+    }
+    if (!found) return;
+
+    setVal('office', userOffice);
+
+    var isAdmin = window._sessionUser && (window._sessionUser.role || '').toLowerCase() === 'admin';
+    officeEl.disabled = !isAdmin;
+
+    if (type === 'PR') {
+      autoSequencePRNo(userOffice);
+    }
+
+    updateOfficeAddressDisplay();
+  }
+
+  function updateOfficeAddressDisplay() {
+    var type = document.getElementById('currentFormType').value;
+    if (!type) return;
+    var pfx = type.toLowerCase() + '_';
+    var officeEl = document.getElementById(pfx + 'office');
+    var addrEl = document.getElementById(pfx + 'officeAddress');
+    if (!addrEl) return;
+    var office = officeEl ? officeEl.value.trim() : '';
+    if (!office) { addrEl.style.display = 'none'; addrEl.textContent = ''; return; }
+
+    google.script.run
+      .withSuccessHandler(function(sig) {
+        if (sig && sig.officeAddress) {
+          addrEl.textContent = sig.officeAddress;
+          addrEl.style.display = 'block';
+        } else {
+          addrEl.style.display = 'none';
+        }
+      })
+      .withFailureHandler(function() {
+        addrEl.style.display = 'none';
+      })
+      .getSignatoryForOffice(office);
   }
 
   function goBack() {
@@ -1935,9 +1997,11 @@
       document.getElementById('pr_prNo').value = '';
       var notice = document.getElementById('pr_autoNotice');
       if (notice) notice.style.display = 'none';
+      updateOfficeAddressDisplay();
       return;
     }
     autoSequencePRNo(office);
+    updateOfficeAddressDisplay();
   }
 
   function autoSequencePRNo(office) {
@@ -1969,7 +2033,26 @@
   function setVal(fieldName, val) {
     if (fieldName === 'office') _officeSetCount++;
     var el = document.getElementById(getPrefix() + fieldName);
-    if (el) el.value = val || '';
+    if (!el) return;
+
+    var v = val || '';
+    if (fieldName === 'office' && v) {
+      // Normalize old office values to match current dropdown
+      if (v === 'Regional Office') v = 'Regional Office No. V';
+      // If still no match, try adding as new option
+      var found = false;
+      for (var i = 0; i < el.options.length; i++) {
+        if (el.options[i].value === v) { found = true; break; }
+      }
+      if (!found) {
+        var opt = document.createElement('option');
+        opt.value = v;
+        opt.text = v;
+        el.appendChild(opt);
+      }
+    }
+
+    el.value = v;
   }
 
   function getUnit() {
@@ -2205,6 +2288,7 @@
       _prNoGenVer++; // invalidate any pending auto-sequence callbacks
       setVal('fundCluster', first.fundCluster);
       setVal('office',      first.office);
+      updateOfficeAddressDisplay();
     }
   }
 
@@ -3020,8 +3104,8 @@
       + '<div class="agency-name">KAGAWARAN NG PANANALAPI</div>'
       + '<div class="bureau-name">KAWANIHAN NG INGATANG-YAMAN</div>'
       + '<div class="bureau-sub">(BUREAU OF THE TREASURY)</div>'
-      + '<div class="bureau-sub">' + (window._sessionUser && window._sessionUser.office || 'Regional Office No. V — Legazpi City') + '</div>'
-      + '<div class="bureau-sub">' + (window._sessionUser && window._sessionUser.officeAddress || '') + '</div>'
+      + '<div class="bureau-sub">' + (r.office || '') + '</div>'
+      + '<div class="bureau-sub">' + (r.officeAddress || '') + '</div>'
       + '</div>'
 
       + '<div class="pr-title">PURCHASE REQUEST</div>'
@@ -3114,8 +3198,8 @@
       + '<div class="agency-name">KAGAWARAN NG PANANALAPI</div>'
       + '<div class="bureau-name">KAWANIHAN NG INGATANG-YAMAN</div>'
       + '<div class="bureau-sub">(BUREAU OF THE TREASURY)</div>'
-      + '<div class="bureau-sub">' + (window._sessionUser && window._sessionUser.office || 'Regional Office No. V — Legazpi City') + '</div>'
-      + '<div class="bureau-sub">' + (window._sessionUser && window._sessionUser.officeAddress || '') + '</div>'
+      + '<div class="bureau-sub">' + (r.office || '') + '</div>'
+      + '<div class="bureau-sub">' + (r.officeAddress || '') + '</div>'
       + '</div>'
 
       + '<div class="pr-title">' + icon + ' ' + typeName.toUpperCase() + '</div>'
@@ -3273,8 +3357,8 @@
       + '<div class="agency-name">KAGAWARAN NG PANANALAPI</div>'
       + '<div class="bureau-name">KAWANIHAN NG INGATANG-YAMAN</div>'
       + '<div class="bureau-sub">(BUREAU OF THE TREASURY)</div>'
-      + '<div class="bureau-sub">' + (window._sessionUser && window._sessionUser.office || 'Regional Office No. V — Legazpi City') + '</div>'
-      + '<div class="bureau-sub">' + (window._sessionUser && window._sessionUser.officeAddress || '') + '</div>'
+      + '<div class="bureau-sub">' + (r.office || '') + '</div>'
+      + '<div class="bureau-sub">' + (r.officeAddress || '') + '</div>'
       + '</div>'
       + '<div class="pr-title">📊 ABSTRACT OF QUOTATIONS</div>'
       + '<div class="pr-info-bar">'
@@ -3336,12 +3420,27 @@
   }
 
   function navigateToSheet(sheetName, prNo) {
-    google.script.run
-      .withSuccessHandler(function(result) {
-        if (result && result.url) { window.open(result.url, '_blank'); }
-        else { alert('Sheet "' + sheetName + '" opened in the spreadsheet.'); }
-      })
-      .activateSheetAndGetUrl(sheetName, prNo);
+    function doNavigate() {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result && result.url) { window.open(result.url, '_blank'); }
+          else { alert('Sheet "' + sheetName + '" opened in the spreadsheet.'); }
+        })
+        .activateSheetAndGetUrl(sheetName, prNo);
+    }
+
+    // Populate the sheet first so it reflects the current PR
+    if (sheetName === 'Purchase Request') {
+      google.script.run.withSuccessHandler(doNavigate).writeToPRSheet(prNo);
+    } else if (sheetName === 'RFQ') {
+      google.script.run.withSuccessHandler(doNavigate).writeToRFQSheet(prNo);
+    } else if (sheetName === 'Abstract of Quotations') {
+      google.script.run.withSuccessHandler(doNavigate).writeToAOQSheetWithExistingData(prNo);
+    } else if (sheetName === 'Purchase Order') {
+      google.script.run.withSuccessHandler(doNavigate).writeToPOSheet(prNo, window._currentSupplierName || '');
+    } else {
+      doNavigate();
+    }
   }
 
   function generateRFQFromModal() {
@@ -3416,25 +3515,48 @@
     if (!_currentSheetName) { alert('No form loaded to download.'); return; }
     var prNo = document.querySelector('#modalTitle') ? document.querySelector('#modalTitle').textContent.split('— ')[1] : '';
     if (!prNo) {
-      // Fallback: try to get PR No. from the form fields
       prNo = getVal('prNo') || document.getElementById('searchPR').value || '';
     }
     var format = document.getElementById('downloadFormat').value;
-    document.getElementById('downloadBar').querySelector('.download-btn').textContent = 'DOWNLOADING...';
-    google.script.run
-      .withSuccessHandler(function(url) {
-        document.getElementById('downloadBar').querySelector('.download-btn').textContent = 'DOWNLOAD';
-        if (url) {
-          window.open(url, '_blank');
-        } else {
-          alert('Could not generate download URL. Make sure the template sheet "' + _currentSheetName + '" exists in the spreadsheet.');
-        }
-      })
-      .withFailureHandler(function(err) {
-        document.getElementById('downloadBar').querySelector('.download-btn').textContent = 'DOWNLOAD';
-        alert('Download failed: ' + err.message);
-      })
-      .getSheetExportUrl(_currentSheetName, format);
+    var downloadBtn = document.getElementById('downloadBar').querySelector('.download-btn');
+    var sheetName = _currentSheetName;
+
+    function doExport() {
+      downloadBtn.textContent = 'DOWNLOADING...';
+      google.script.run
+        .withSuccessHandler(function(url) {
+          downloadBtn.textContent = 'DOWNLOAD';
+          if (url) { window.open(url, '_blank'); }
+          else { alert('Could not generate download URL. Make sure "' + sheetName + '" exists.'); }
+        })
+        .withFailureHandler(function(err) {
+          downloadBtn.textContent = 'DOWNLOAD';
+          alert('Download failed: ' + err.message);
+        })
+        .getSheetExportUrl(sheetName, format);
+    }
+
+    // Populate the sheet with current PR data before downloading
+    downloadBtn.textContent = 'WRITING...';
+    if (sheetName === 'Purchase Request') {
+      google.script.run.withSuccessHandler(doExport).withFailureHandler(function(err) {
+        downloadBtn.textContent = 'DOWNLOAD'; alert('Failed to populate: ' + err.message);
+      }).writeToPRSheet(prNo);
+    } else if (sheetName === 'RFQ') {
+      google.script.run.withSuccessHandler(doExport).withFailureHandler(function(err) {
+        downloadBtn.textContent = 'DOWNLOAD'; alert('Failed to populate: ' + err.message);
+      }).writeToRFQSheet(prNo);
+    } else if (sheetName === 'Abstract of Quotations') {
+      google.script.run.withSuccessHandler(doExport).withFailureHandler(function(err) {
+        downloadBtn.textContent = 'DOWNLOAD'; alert('Failed to populate: ' + err.message);
+      }).writeToAOQSheetWithExistingData(prNo);
+    } else if (sheetName === 'Purchase Order') {
+      google.script.run.withSuccessHandler(doExport).withFailureHandler(function(err) {
+        downloadBtn.textContent = 'DOWNLOAD'; alert('Failed to populate: ' + err.message);
+      }).writeToPOSheet(prNo, window._currentSupplierName || '');
+    } else {
+      doExport();
+    }
   }
 
   document.getElementById('prFormModal').addEventListener('click', function(e) {
@@ -3658,6 +3780,7 @@
       pendingItems = [];
       renderItemsTable();
     }
+    updateOfficeAddressDisplay();
   }
 
   function clearItemFields() {
@@ -4788,7 +4911,7 @@
           <label>Office</label>
           <select id="userFormOffice"> 
             <option value="">-- Select Office --</option>
-            <option value="Regional Office">Regional Office</option>
+            <option value="Regional Office No. V">Regional Office No. V</option>
             <option value="Albay Provincial Office">Albay Provincial Office</option>
             <option value="Camarines Norte Provincial Office">Camarines Norte Provincial Office</option>
             <option value="Camarines Sur Provincial Office">Camarines Sur Provincial Office</option>
@@ -4884,7 +5007,7 @@
           <label>Office Name *</label>
           <select id="sigFormOfficeName">
             <option value="">-- Select Office --</option>
-            <option value="Regional Office">Regional Office</option>
+            <option value="Regional Office No. V">Regional Office No. V</option>
             <option value="Albay Provincial Office">Albay Provincial Office</option>
             <option value="Camarines Norte Provincial Office">Camarines Norte Provincial Office</option>
             <option value="Camarines Sur Provincial Office">Camarines Sur Provincial Office</option>

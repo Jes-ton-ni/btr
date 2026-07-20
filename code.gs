@@ -122,6 +122,65 @@ function saveSignatories(data) {
   }
 }
 
+/* ── AGENCY HEADER ──
+   Single property "Headers" stores global agency header info
+   (rows 1-4 of every template sheet).
+*/
+
+function loadHeaders() {
+  var raw = PropertiesService.getScriptProperties().getProperty('Headers');
+  if (!raw) {
+    return {
+      agencyLine1: '',
+      agencyLine2: '',
+      agencyLine3: '',
+      agencyLine4: '',
+      entityName: ''
+    };
+  }
+  try { return JSON.parse(raw); } catch (e) { return { agencyLine1: '', agencyLine2: '', agencyLine3: '', agencyLine4: '', entityName: '' }; }
+}
+
+function saveHeaders(hdr) {
+  var lock = getPropsLock_();
+  try {
+    PropertiesService.getScriptProperties().setProperty('Headers', JSON.stringify(hdr));
+  } finally {
+    releaseLock_(lock);
+  }
+}
+
+function getAgencyHeader() {
+  return loadHeaders();
+}
+
+function writeAgencyHeaderToSheet(sheet) {
+  var hdr = getAgencyHeader();
+  if (hdr.agencyLine1) sheet.getRange("A1").setValue(hdr.agencyLine1);
+  if (hdr.agencyLine2) sheet.getRange("A2").setValue(hdr.agencyLine2);
+  if (hdr.agencyLine3) sheet.getRange("A3").setValue(hdr.agencyLine3);
+  if (hdr.agencyLine4) sheet.getRange("A4").setValue(hdr.agencyLine4);
+}
+
+function getOfficeFromSummary(prNo) {
+  var sheet = getSheet();
+  if (!sheet) return '';
+  var data = sheet.getDataRange().getValues();
+  var nPrNo = cleanPrNo(prNo).toLowerCase();
+  for (var i = 1; i < data.length; i++) {
+    if (cleanPrNo(data[i][1]).toLowerCase() === nPrNo) {
+      return String(data[i][3] || '').trim();
+    }
+  }
+  return '';
+}
+
+function normalizeOffice(office) {
+  var o = String(office || '').trim();
+  if (o === 'Regional Office') return 'Regional Office No. V';
+  return o;
+}
+
 function getCurrentUser() {
   return Session.getEffectiveUser().getEmail();
 }
@@ -153,6 +212,24 @@ function getOfficeHeaderInfo() {
   var info = getCurrentUserInfo();
   if (info) return { office: info.office, officeAddress: info.officeAddress };
   return { office: '', officeAddress: '' };
+}
+
+function getOfficeHeaderForPR(prNo) {
+  var office = getOfficeFromSummary(prNo);
+  var info = getCurrentUserInfo();
+  if (!office) {
+    return { office: info ? info.office : '', officeAddress: info ? info.officeAddress : '' };
+  }
+  var sigs = loadSignatories();
+  var normOffice = normalizeOffice(office).toLowerCase();
+  for (var i = 1; i < sigs.length; i++) {
+    var sigOffice = normalizeOffice(String(sigs[i][1] || '').trim()).toLowerCase();
+    if (sigOffice === normOffice) {
+      var addr = String(sigs[i][2] || '').trim();
+      return { office: normalizeOffice(office), officeAddress: addr || (info ? info.officeAddress : '') };
+    }
+  }
+  return { office: normalizeOffice(office), officeAddress: info ? info.officeAddress : '' };
 }
 
 /* =================================
@@ -378,7 +455,11 @@ function parseNum(v) {
 }
 
 function onOpen() {
-  hideAndProtectSystemSheets();
+  try {
+    hideAndProtectSystemSheets();
+  } catch (e) {
+    // Simple trigger may not have PropertiesService access — showForm will init
+  }
   SpreadsheetApp.getUi()
     .createMenu('My Menu')
     .addItem('Download Canvass', 'downloadCanvass')
@@ -529,10 +610,11 @@ function getNextUniquePONo(prNo, reserved) {
    GET OFFICE INITIALS
    Extracts the first letter of each
    word in the office name to form
-   initials for PR No. generation.
-   e.g. "Regional Office" → "RO"
+   initials for PR / PO No. generation.
+   Special-cases "Regional Office No. V" → "RO"
 ================================= */
 function getOfficeInitials(office) {
+  if (office.indexOf('Regional Office') === 0) return 'RO';
   return office.split(' ').map(function(word) {
     return word.charAt(0).toUpperCase();
   }).join('');
@@ -649,8 +731,31 @@ function searchItem(prNo) {
         modeProcurement: data[i][16],
         placeDelivery: data[i][17],
         dateDelivery: formatDate(data[i][18]),
+        officeAddress: '',
         userEmail: data[i][20] || ''
       });
+    }
+  }
+
+  // Fill officeAddress from signatories for each result
+  if (results.length > 0) {
+    var sigs = loadSignatories();
+    var userInfo = getCurrentUserInfo();
+    var userAddr = userInfo ? userInfo.officeAddress : '';
+    for (var r = 0; r < results.length; r++) {
+      var off = normalizeOffice(String(results[r].office || '')).trim().toLowerCase();
+      if (off) {
+        var found = false;
+        for (var s = 1; s < sigs.length; s++) {
+          var sigOffice = normalizeOffice(String(sigs[s][1] || '')).trim().toLowerCase();
+          if (sigOffice === off) {
+            results[r].officeAddress = String(sigs[s][2] || '').trim() || userAddr;
+            found = true;
+            break;
+          }
+        }
+        if (!found && userAddr) results[r].officeAddress = userAddr;
+      }
     }
   }
 
@@ -1095,9 +1200,7 @@ function writeToRFQSheet(prNo) {
   if (!summarySheet) return "SUMMARY sheet not found.";
   if (!rfqSheet)     return "RFQ sheet not found.";
 
-  var officeInfo = getOfficeHeaderInfo();
-  rfqSheet.getRange("A5").setValue(officeInfo.office || "");
-  rfqSheet.getRange("A6").setValue(officeInfo.officeAddress || "");
+  removeSheetProtections("RFQ");
 
   var summaryData = summarySheet.getDataRange().getValues();
   var items = [];
@@ -1147,6 +1250,11 @@ function writeToRFQSheet(prNo) {
   rfqSheet.getRange("C46").clearContent();
 
   var first = items[0];
+
+  writeAgencyHeaderToSheet(rfqSheet);
+  var officeInfo = getOfficeHeaderForPR(prNo);
+  rfqSheet.getRange("A5").setValue(officeInfo.office || "");
+  rfqSheet.getRange("A6").setValue(officeInfo.officeAddress || "");
 
   // RFQ Date Selection at F8 (merged F:G) — from the RFQ form's date picker
   var rfqDate = first.deliveryPeriod ? Utilities.formatDate(new Date(first.deliveryPeriod), Session.getScriptTimeZone(), "MM/dd/yyyy") : "";
@@ -1216,7 +1324,10 @@ function writeToAOQSheet(prNo, suppliersJson, pricingJson, selectionsJson) {
   if (!summarySheet) return "SUMMARY sheet not found.";
   if (!aoqSheet)     return "Abstract of Quotations sheet not found.";
 
-  var officeInfo = getOfficeHeaderInfo();
+  removeSheetProtections("Abstract of Quotations");
+
+  writeAgencyHeaderToSheet(aoqSheet);
+  var officeInfo = getOfficeHeaderForPR(prNo);
   aoqSheet.getRange("A5").setValue(officeInfo.office || "");
   aoqSheet.getRange("A6").setValue(officeInfo.officeAddress || "");
 
@@ -1743,7 +1854,10 @@ function writeToPOSheet(prNo, supplierName) {
   if (!summarySheet) return "SUMMARY sheet not found.";
   if (!poSheet)      return "Purchase Order sheet not found.";
 
-  var officeInfo = getOfficeHeaderInfo();
+  removeSheetProtections("Purchase Order");
+
+  writeAgencyHeaderToSheet(poSheet);
+  var officeInfo = getOfficeHeaderForPR(prNo);
   poSheet.getRange("A5").setValue(officeInfo.office || "");
   poSheet.getRange("A6").setValue(officeInfo.officeAddress || "");
 
@@ -1991,30 +2105,32 @@ function ensureHeaderSignatoriesSheet() {
 
 function getSignatoryForOffice(office) {
   var data = loadSignatories();
-  var search = String(office || '').trim().toLowerCase();
-  if (!search) return { name: '', position: '' };
+  var search = normalizeOffice(String(office || '').trim()).toLowerCase();
+  if (!search) return { name: '', position: '', officeAddress: '' };
 
   for (var i = 1; i < data.length; i++) {
-    var officeName = String(data[i][1] || '').trim().toLowerCase();
+    var officeName = normalizeOffice(String(data[i][1] || '').trim()).toLowerCase();
     if (officeName === search) {
       return {
         name:     String(data[i][3] || '').trim(),
-        position: String(data[i][4] || '').trim()
+        position: String(data[i][4] || '').trim(),
+        officeAddress: String(data[i][2] || '').trim()
       };
     }
   }
 
   for (var i = 1; i < data.length; i++) {
-    var officeName = String(data[i][1] || '').trim().toLowerCase();
+    var officeName = normalizeOffice(String(data[i][1] || '').trim()).toLowerCase();
     if (officeName.indexOf(search) !== -1 || search.indexOf(officeName) !== -1) {
       return {
         name:     String(data[i][3] || '').trim(),
-        position: String(data[i][4] || '').trim()
+        position: String(data[i][4] || '').trim(),
+        officeAddress: String(data[i][2] || '').trim()
       };
     }
   }
 
-  return { name: '', position: '' };
+  return { name: '', position: '', officeAddress: '' };
 }
 
 function listSignatories() {
@@ -2140,7 +2256,121 @@ function migrateSignatoriesToProperties() {
 function migrateAllToProperties() {
   var uResult = migrateUsersToProperties();
   var sResult = migrateSignatoriesToProperties();
-  return "Users: " + uResult + "\nSignatories: " + sResult;
+  var hResult = migrateHeadersToProperties();
+  return "Users: " + uResult + "\nSignatories: " + sResult + "\nHeaders: " + hResult;
+}
+
+function ensureHeadersData() {
+  var hdr = loadHeaders();
+  if (!hdr.agencyLine1 && !hdr.agencyLine2) {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Purchase Request");
+    if (!sheet) sheet = ss.getSheetByName("Abstract of Quotations");
+    if (!sheet) sheet = ss.getSheetByName("RFQ");
+
+    if (sheet) {
+      hdr.agencyLine1 = String(sheet.getRange('A1').getValue() || '').trim();
+      hdr.agencyLine2 = String(sheet.getRange('A2').getValue() || '').trim();
+      hdr.agencyLine3 = String(sheet.getRange('A3').getValue() || '').trim();
+      hdr.agencyLine4 = String(sheet.getRange('A4').getValue() || '').trim();
+    }
+
+    // If both property and template are empty, restore defaults
+    if (!hdr.agencyLine1 && !hdr.agencyLine2) {
+      hdr = {
+        agencyLine1: 'Republic of the Philippines',
+        agencyLine2: 'KAGAWARAN NG PANANALAPI',
+        agencyLine3: 'KAWANIHAN NG INGATANG-YAMAN',
+        agencyLine4: '(BUREAU OF THE TREASURY)',
+        entityName: 'Bureau of the Treasury'
+      };
+      // Also restore the template sheets
+      var templateSheets = ['Purchase Request', 'RFQ', 'Abstract of Quotations', 'Purchase Order'];
+      templateSheets.forEach(function(name) {
+        var s = ss.getSheetByName(name);
+        if (s) {
+          s.getRange('A1').setValue(hdr.agencyLine1);
+          s.getRange('A2').setValue(hdr.agencyLine2);
+          s.getRange('A3').setValue(hdr.agencyLine3);
+          s.getRange('A4').setValue(hdr.agencyLine4);
+        }
+      });
+    }
+
+    if (hdr.agencyLine1 || hdr.agencyLine2) {
+      saveHeaders(hdr);
+    }
+  }
+}
+
+function migrateHeadersToProperties() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Purchase Request");
+  if (!sheet) sheet = ss.getSheetByName("Abstract of Quotations");
+  if (!sheet) sheet = ss.getSheetByName("RFQ");
+  if (!sheet) return "No template sheet found to read agency header from.";
+
+  var hdr = {
+    agencyLine1: String(sheet.getRange("A1").getValue() || '').trim(),
+    agencyLine2: String(sheet.getRange("A2").getValue() || '').trim(),
+    agencyLine3: String(sheet.getRange("A3").getValue() || '').trim(),
+    agencyLine4: String(sheet.getRange("A4").getValue() || '').trim(),
+    entityName: ''
+  };
+
+  var entityCell = sheet.getRange("A10").getValue();
+  if (entityCell) {
+    var entityStr = String(entityCell).trim();
+    var prefix = 'Entity Name: ';
+    if (entityStr.indexOf(prefix) === 0) {
+      hdr.entityName = entityStr.substring(prefix.length).trim();
+    }
+  }
+
+  saveHeaders(hdr);
+  return "Agency header migrated from template sheet.";
+}
+
+function setAgencyHeader(line1, line2, line3, line4, entityName) {
+  var hdr = {
+    agencyLine1: line1 || '',
+    agencyLine2: line2 || '',
+    agencyLine3: line3 || '',
+    agencyLine4: line4 || '',
+    entityName: entityName || ''
+  };
+  saveHeaders(hdr);
+  return "Agency header updated.";
+}
+
+function getHeaderInfo() {
+  return loadHeaders();
+}
+
+function restoreDefaultAgencyHeader() {
+  var hdr = {
+    agencyLine1: 'Republic of the Philippines',
+    agencyLine2: 'KAGAWARAN NG PANANALAPI',
+    agencyLine3: 'KAWANIHAN NG INGATANG-YAMAN',
+    agencyLine4: '(BUREAU OF THE TREASURY)',
+    entityName: 'Bureau of the Treasury'
+  };
+  saveHeaders(hdr);
+
+  // Write to all template sheets
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var templateSheets = ['Purchase Request', 'RFQ', 'Abstract of Quotations', 'Purchase Order'];
+  templateSheets.forEach(function(name) {
+    var sheet = ss.getSheetByName(name);
+    if (sheet) {
+      sheet.getRange('A1').setValue(hdr.agencyLine1);
+      sheet.getRange('A2').setValue(hdr.agencyLine2);
+      sheet.getRange('A3').setValue(hdr.agencyLine3);
+      sheet.getRange('A4').setValue(hdr.agencyLine4);
+    }
+  });
+
+  return 'Agency header restored to all template sheets and saved to properties.';
 }
 
 /* =================================
@@ -2152,6 +2382,7 @@ function migrateAllToProperties() {
 function hideAndProtectSystemSheets() {
   ensureFirstRun();
   ensureSignatoriesData();
+  ensureHeadersData();
   var systemSheets = ["AOQ_SupplierData"];
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   systemSheets.forEach(function(name) {
@@ -2393,7 +2624,10 @@ function createSupplierRFQSheet(prNo, supplierName) {
   var rfqSheet = rfqTemplate.copyTo(ss);
   rfqSheet.setName(sheetName);
 
-  var officeInfo = getOfficeHeaderInfo();
+  removeSheetProtections(sheetName);
+
+  writeAgencyHeaderToSheet(rfqSheet);
+  var officeInfo = getOfficeHeaderForPR(prNo);
   rfqSheet.getRange("A5").setValue(officeInfo.office || "");
   rfqSheet.getRange("A6").setValue(officeInfo.officeAddress || "");
 
@@ -2459,7 +2693,10 @@ function writeToPRSheet(prNo) {
 
   if (!summarySheet || !prSheet) return "Sheet not found.";
 
-  var officeInfo = getOfficeHeaderInfo();
+  removeSheetProtections("Purchase Request");
+
+  writeAgencyHeaderToSheet(prSheet);
+  var officeInfo = getOfficeHeaderForPR(prNo);
   prSheet.getRange("A5").setValue(officeInfo.office || "");
   prSheet.getRange("A6").setValue(officeInfo.officeAddress || "");
 
@@ -2616,6 +2853,9 @@ function removeSheetProtections(sheetName) {
     for (var j = 0; j < sheetProtections.length; j++) {
       sheetProtections[j].remove();
     }
+
+    // Clear data validation rules that block script writes
+    sheet.getRange(1, 1, sheet.getMaxRows(), sheet.getMaxColumns()).clearDataValidations();
   } catch (e) {
     Logger.log("Could not remove protections from sheet '" + sheetName + "': " + e);
   }
