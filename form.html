@@ -4580,6 +4580,19 @@
 
   function editUser(row) { openUserModal(row); }
 
+  function onUserOfficeChange() {
+    var office = document.getElementById('userFormOffice').value.trim();
+    var addrEl = document.getElementById('userFormOfficeAddress');
+    if (!office || !addrEl) return;
+    google.script.run
+      .withSuccessHandler(function(sig) {
+        if (sig && sig.officeAddress && !addrEl.value) {
+          addrEl.value = sig.officeAddress;
+        }
+      })
+      .getSignatoryForOffice(office);
+  }
+
   function deleteUserConfirm(row) {
     if (!confirm('Delete this user? This cannot be undone.')) return;
     google.script.run
@@ -4703,6 +4716,42 @@
         alert('Failed to delete signatory: ' + err.message);
       })
       .deleteSignatory(row);
+  }
+
+  function onSignatoryOfficeChange() {
+    var office = document.getElementById('sigFormOfficeName').value.trim();
+    var addrEl = document.getElementById('sigFormOfficeAddress');
+    var nameEl = document.getElementById('sigFormSignatoryName');
+    var posEl = document.getElementById('sigFormSignatoryPosition');
+
+    if (!office) {
+      if (!_editingSignatoryRow) {
+        if (addrEl) addrEl.value = '';
+        if (nameEl) nameEl.value = '';
+        if (posEl) posEl.value = '';
+      }
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(sigs) {
+        var found = sigs.filter(function(s) {
+          return s.officeName.toLowerCase() === office.toLowerCase();
+        });
+        if (found.length > 0) {
+          var s = found[0];
+          // For new entries, fill all fields
+          // For editing, only fill empty fields
+          if (!_editingSignatoryRow) {
+            if (addrEl && !addrEl.value) addrEl.value = s.officeAddress || '';
+            if (nameEl && !nameEl.value) nameEl.value = s.signatoryName || '';
+            if (posEl && !posEl.value) posEl.value = s.signatoryPosition || '';
+          } else {
+            if (addrEl && !addrEl.value) addrEl.value = s.officeAddress || '';
+          }
+        }
+      })
+      .listSignatories();
   }
 
   /* ─── CHANGE PASSWORD (self‑service) ─── */
@@ -4909,7 +4958,7 @@
         </div>
         <div class="field">
           <label>Office</label>
-          <select id="userFormOffice"> 
+          <select id="userFormOffice" onchange="onUserOfficeChange()"> 
             <option value="">-- Select Office --</option>
             <option value="Regional Office No. V">Regional Office No. V</option>
             <option value="Albay Provincial Office">Albay Provincial Office</option>
@@ -5005,7 +5054,7 @@
       <div class="user-form-row">
         <div class="field">
           <label>Office Name *</label>
-          <select id="sigFormOfficeName">
+          <select id="sigFormOfficeName" onchange="onSignatoryOfficeChange()">
             <option value="">-- Select Office --</option>
             <option value="Regional Office No. V">Regional Office No. V</option>
             <option value="Albay Provincial Office">Albay Provincial Office</option>
